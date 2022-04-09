@@ -1,15 +1,18 @@
 package org.brunhild.concrete;
 
 import kala.collection.immutable.ImmutableSeq;
+import org.brunhild.concrete.resolve.context.Context;
 import org.brunhild.core.Def;
 import org.brunhild.error.SourcePos;
 import org.brunhild.generic.DefVar;
 import org.brunhild.generic.Type;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public sealed abstract class Decl {
   public final @NotNull SourcePos sourcePos;
   public final @NotNull Type result;
+  public @Nullable Context context;
 
   protected Decl(@NotNull SourcePos sourcePos, @NotNull Type result) {
     this.sourcePos = sourcePos;

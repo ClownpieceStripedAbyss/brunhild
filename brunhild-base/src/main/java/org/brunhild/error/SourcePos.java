@@ -14,6 +14,7 @@ import java.util.Objects;
  */
 @SuppressWarnings("unused")
 public record SourcePos(
+  @NotNull SourceFile sourceFile,
   int tokenStartIndex,
   int tokenEndIndex,
   int startLine,
@@ -25,8 +26,7 @@ public record SourcePos(
   public static final int UNAVAILABLE_AND_FUCK_ANTLR4 = -114514;
 
   /** Single instance SourcePos for mocking tests and other usages. */
-  public static final SourcePos NONE = new SourcePos(-1, -1, -1, -1, -1, -1);
-  /** Source pos used in serialized core */
+  public static final SourcePos NONE = new SourcePos(SourceFile.NONE, -1, -1, -1, -1, -1, -1);
 
   private boolean indexAvailable() {
     return tokenStartIndex != UNAVAILABLE_AND_FUCK_ANTLR4
@@ -47,6 +47,7 @@ public record SourcePos(
 
   @Contract("_ -> new") public @NotNull SourcePos union(@NotNull SourcePos other) {
     return new SourcePos(
+      sourceFile,
       min(tokenStartIndex, other.tokenStartIndex),
       max(tokenEndIndex, other.tokenEndIndex),
       min(startLine, other.startLine),
