@@ -6,7 +6,8 @@ import kala.control.Option;
 import org.brunhild.error.SourcePos;
 import org.jetbrains.annotations.NotNull;
 
-public sealed interface Stmt {
+public sealed interface Stmt permits Decl, Stmt.AssignStmt, Stmt.BlockStmt, Stmt.BreakStmt,
+  Stmt.ContinueStmt, Stmt.ExprStmt, Stmt.IfStmt, Stmt.ReturnStmt, Stmt.WhileStmt {
   @NotNull SourcePos sourcePos();
 
   record AssignStmt(
@@ -25,7 +26,7 @@ public sealed interface Stmt {
 
   record BlockStmt(
     @Override @NotNull SourcePos sourcePos,
-    @NotNull ImmutableSeq<Either<Stmt, Decl>> block
+    @NotNull ImmutableSeq<Stmt> block
   ) implements Stmt {}
 
   record IfStmt(

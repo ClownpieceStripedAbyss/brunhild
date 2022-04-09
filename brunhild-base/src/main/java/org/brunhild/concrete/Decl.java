@@ -9,7 +9,7 @@ import org.brunhild.generic.Type;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public sealed abstract class Decl {
+public sealed abstract class Decl implements Stmt{
   public final @NotNull SourcePos sourcePos;
   public final @NotNull Type result;
   public @Nullable Context context;
@@ -27,7 +27,7 @@ public sealed abstract class Decl {
     return result;
   }
 
-  abstract @NotNull DefVar<?, ?> ref();
+  public abstract @NotNull DefVar<?, ?> ref();
 
   public static final class FnDecl extends Decl {
     public final @NotNull DefVar<Def.FnDef, FnDecl> ref;
@@ -47,7 +47,7 @@ public sealed abstract class Decl {
       this.ref = DefVar.concrete(this, name);
     }
 
-    @Override @NotNull DefVar<Def.FnDef, FnDecl> ref() {
+    @Override public @NotNull DefVar<Def.FnDef, FnDecl> ref() {
       return this.ref;
     }
   }
@@ -70,7 +70,7 @@ public sealed abstract class Decl {
       this.ref = DefVar.concrete(this, name);
     }
 
-    @Override @NotNull DefVar<Def.VarDef, VarDecl> ref() {
+    @Override public @NotNull DefVar<Def.VarDef, VarDecl> ref() {
       return this.ref;
     }
   }
