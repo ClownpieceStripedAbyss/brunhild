@@ -1,6 +1,100 @@
 grammar Brunhild;
 
-program: ID;
+// compilation unit
+program: (decl | fnDecl)+;
+
+// decl
+decl: constDecl | varDecl;
+constDecl: KW_CONST primitiveType constDeclItem (',' constDeclItem)* ';';
+constDeclItem: ID ('[' constExpr ']')* ASSIGN constInitVal;
+constInitVal: constExpr | '{' (constInitVal (',' constInitVal)*)? '}';
+
+varDecl: primitiveType varDeclItem (',' varDeclItem)* ';';
+varDeclItem: ID ('[' constExpr ']')* (ASSIGN varInitVal)?;
+varInitVal: expr | '{' (varInitVal (',' varInitVal)*)? '}';
+
+fnDecl: returnType ID '(' fnParams? ')' block;
+fnParams: fnParam (',' fnParam)*;
+fnParam: primitiveType ID ('[' ']' ('[' expr ']')* )?;
+
+block: '{' blockItem* '}';
+blockItem: decl | stmt;
+
+returnType: KW_VOID | primitiveType;
+primitiveType: KW_INT | KW_FLOAT;
+
+// stmt
+stmt : lval ASSIGN expr ';'                       # assign
+     | expr? ';'                                  # exprStmt
+     | block                                      # blockStmt
+     | KW_IF '(' cond ')' stmt (KW_ELSE stmt)?    # if
+     | KW_WHILE '(' cond ')' stmt                 # while
+     | KW_BREAK ';'                               # break
+     | KW_CONTINUE ';'                            # continue
+     | KW_RETURN expr? ';'                        # return
+     ;
+
+// expr
+expr: addExpr;
+cond: lOrExpr;
+lval: ID ('[' expr ']')*;
+primaryExpr: '(' expr ')' | lval | number;
+number: INT_LITERAL | FLOAT_LITERAL;
+unaryExpr: primaryExpr | ID '(' appArg? ')' | unaryOp unaryExpr;
+unaryOp: ADD | SUB | LOGICAL_NOT;
+appArg: expr (',' expr)*;
+mulExpr: unaryExpr | mulExpr (MUL | DIV | MOD) unaryExpr;
+addExpr: mulExpr | addExpr (ADD | SUB) mulExpr;
+relExpr: addExpr | relExpr (LT | GT | LE | GE) addExpr;
+eqExpr: relExpr | eqExpr (EQ | NE) relExpr;
+lAndExpr: eqExpr | lAndExpr LOGICAL_AND eqExpr;
+lOrExpr: lAndExpr | lOrExpr LOGICAL_OR lAndExpr;
+constExpr: addExpr;
+
+// keywords
+KW_CONST: 'const';
+KW_INT: 'int';
+KW_FLOAT: 'float';
+KW_VOID: 'void';
+KW_IF: 'if';
+KW_ELSE: 'else';
+KW_WHILE: 'while';
+KW_RETURN: 'return';
+KW_BREAK: 'break';
+KW_CONTINUE: 'continue';
+
+// operator tokens
+ADD: '+';
+SUB: '-';
+MUL: '*';
+DIV: '/';
+MOD: '%';
+LT: '<';
+GT: '>';
+LE: '<=';
+GE: '>=';
+EQ: '==';
+NE: '!=';
+ASSIGN: '=';
+LOGICAL_AND: '&&';
+LOGICAL_OR: '||';
+LOGICAL_NOT: '!';
+
+// literals
+fragment DEC_INT_LITERAL: '0' | [1-9][0-9]*;
+fragment HEX_INT_LITERAL: '0' [xX] [0-9a-fA-F]+;
+fragment OCT_INT_LITERAL: '0' [0-7]+;
+INT_LITERAL: DEC_INT_LITERAL | HEX_INT_LITERAL | OCT_INT_LITERAL;
+
+fragment DEC_FLOAT_LITERAL: FLOAT_CONST FLOAT_EXP? | [0-9]+ FLOAT_EXP;
+fragment HEX_FLOAT_LITERAL: '0' [xX] (HEX_FLOAT_CONST | [0-9a-fA-F]+) BIN_FLOAT_EXP;
+
+fragment FLOAT_CONST: ([0-9]+)? '.' [0-9]+ | [0-9]+ '.';
+fragment HEX_FLOAT_CONST: ([0-9a-fA-F]+)? '.' [0-9a-fA-F]+ | [0-9a-fA-F]+ '.';
+
+fragment FLOAT_EXP: [eE] ([+-])? [0-9]+;
+fragment BIN_FLOAT_EXP: [pP] ([+-])? [0-9]+;
+FLOAT_LITERAL: DEC_FLOAT_LITERAL | HEX_FLOAT_LITERAL;
 
 // identifier
 fragment SIMPLE_LETTER : [~!@#$%^&*+=<>?/|[\u005Da-zA-Z_\u2200-\u22FF];
