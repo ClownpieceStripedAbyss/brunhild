@@ -93,7 +93,7 @@ fragment BIN_FLOAT_EXP: [pP] ([+-])? [0-9]+;
 FLOAT_LITERAL: DEC_FLOAT_LITERAL | HEX_FLOAT_LITERAL;
 
 // identifier
-fragment SIMPLE_LETTER : [~!@#$%^&*+=<>?/|[\u005Da-zA-Z_\u2200-\u22FF];
+fragment SIMPLE_LETTER : [a-zA-Z_];
 fragment UNICODE : [\u0080-\uFEFE] | [\uFF00-\u{10FFFF}]; // exclude U+FEFF which is a truly invisible char
 fragment LETTER : SIMPLE_LETTER | UNICODE;
 fragment LETTER_FOLLOW : LETTER | [0-9];

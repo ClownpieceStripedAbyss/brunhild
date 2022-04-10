@@ -10,7 +10,7 @@ import org.jetbrains.annotations.Nullable;
 public record BindContext(
   @Override @NotNull Context parent,
   @NotNull String name,
-  @NotNull LocalVar ref
+  @NotNull Var ref
 ) implements Context {
   @Override public @NotNull Reporter reporter() {
     return parent.reporter();

@@ -40,11 +40,11 @@ public interface Context {
     return v.get();
   }
 
-  default @NotNull BindContext bind(@NotNull String name, @NotNull LocalVar ref) {
+  default @NotNull BindContext bind(@NotNull String name, @NotNull Var ref) {
     return new BindContext(this, name, ref);
   }
 
-  default @NotNull BindContext bind(@NotNull LocalVar ref) {
+  default @NotNull BindContext bind(@NotNull Var ref) {
     return bind(ref.name(), ref);
   }
 
