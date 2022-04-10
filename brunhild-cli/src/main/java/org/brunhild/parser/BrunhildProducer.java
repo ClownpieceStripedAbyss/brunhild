@@ -67,7 +67,8 @@ public record BrunhildProducer(
   private @NotNull Stmt fnDecl(@NotNull BrunhildParser.FnDeclContext ctx) {
     var returnType = returnType(ctx.returnType());
     var id = ctx.ID().getText();
-    var tele = fnParams(ctx.fnParams());
+    var params = ctx.fnParams();
+    var tele = params == null ? ImmutableSeq.<Expr.Param>empty() : fnParams(params);
     var block = block(ctx.block());
     var blockSourcePos = sourcePosOf(ctx.block());
     return new Decl.FnDecl(
