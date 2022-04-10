@@ -2,7 +2,7 @@ package org.brunhild.error;
 
 import org.jetbrains.annotations.NotNull;
 
-public abstract class InterruptedException extends RuntimeException {
+public abstract class InterruptException extends RuntimeException {
   public enum Stage {
     Parsing,
     Resolving,

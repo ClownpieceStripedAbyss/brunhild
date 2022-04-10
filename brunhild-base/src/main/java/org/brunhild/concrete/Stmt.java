@@ -3,7 +3,10 @@ package org.brunhild.concrete;
 import kala.collection.immutable.ImmutableSeq;
 import kala.control.Either;
 import kala.control.Option;
+import org.brunhild.concrete.resolve.StmtResolver;
+import org.brunhild.concrete.resolve.StmtShallowResolver;
 import org.brunhild.concrete.resolve.context.Context;
+import org.brunhild.concrete.resolve.context.ModuleContext;
 import org.brunhild.error.SourcePos;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -56,4 +59,9 @@ public sealed interface Stmt permits Decl, Stmt.AssignStmt, Stmt.BlockStmt, Stmt
   record ContinueStmt(
     @Override @NotNull SourcePos sourcePos
   ) implements Stmt {}
+
+  static @NotNull ImmutableSeq<Stmt> resolve(@NotNull ImmutableSeq<Stmt> stmts, @NotNull ModuleContext context) {
+    StmtShallowResolver.resolveStmts(stmts, context);
+    return StmtResolver.resolveStmts(stmts);
+  }
 }

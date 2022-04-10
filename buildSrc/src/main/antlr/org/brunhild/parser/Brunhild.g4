@@ -1,7 +1,7 @@
 grammar Brunhild;
 
 // compilation unit
-program: programItem+;
+program: programItem*;
 programItem: varDecl | fnDecl;
 
 // decl

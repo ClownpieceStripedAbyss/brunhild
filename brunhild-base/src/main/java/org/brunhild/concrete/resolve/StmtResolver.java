@@ -11,11 +11,11 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 
 public interface StmtResolver {
-  default @NotNull ImmutableSeq<Stmt> resolveStmts(@NotNull ImmutableSeq<Stmt> stmts) {
-    return stmts.map(this::resolveTopLevel);
+  static @NotNull ImmutableSeq<Stmt> resolveStmts(@NotNull ImmutableSeq<Stmt> stmts) {
+    return stmts.map(StmtResolver::resolveTopLevel);
   }
 
-  private @NotNull Stmt resolveTopLevel(@NotNull Stmt stmt) {
+  private static @NotNull Stmt resolveTopLevel(@NotNull Stmt stmt) {
     return switch (stmt) {
       case Decl.FnDecl decl -> {
         var context = decl.context;
@@ -36,7 +36,7 @@ public interface StmtResolver {
   }
 
   @Contract(pure = true)
-  static @NotNull Tuple2<SeqView<Expr.Param>, Context>
+  private static @NotNull Tuple2<SeqView<Expr.Param>, Context>
   resolveParams(@NotNull SeqView<Expr.Param> params, @NotNull Context ctx) {
     if (params.isEmpty()) return Tuple2.of(SeqView.empty(), ctx);
     var first = params.first();
@@ -46,7 +46,7 @@ public interface StmtResolver {
     return Tuple2.of(result._1.prepended(new Expr.Param(first, type)), result._2);
   }
 
-  private @NotNull Stmt resolveStmt(@NotNull Stmt stmt, @NotNull Context context) {
+  private static @NotNull Stmt resolveStmt(@NotNull Stmt stmt, @NotNull Context context) {
     return switch (stmt) {
       case Stmt.WhileStmt whi -> {
         var cond = whi.cond().resolve(context);

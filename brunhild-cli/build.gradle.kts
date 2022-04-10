@@ -1,5 +1,5 @@
 plugins { application }
-application.mainClass.set("org.brunhild.cli.CliMain")
+application.mainClass.set("org.brunhild.cli.Main")
 
 dependencies {
   val deps: java.util.Properties by rootProject.ext

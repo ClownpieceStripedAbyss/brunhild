@@ -4,14 +4,12 @@ import kala.collection.immutable.ImmutableSeq;
 import kala.control.Option;
 import org.brunhild.concrete.problem.NameNotFoundProblem;
 import org.brunhild.error.*;
-import org.brunhild.error.InterruptedException;
+import org.brunhild.error.InterruptException;
 import org.brunhild.generic.LocalVar;
 import org.brunhild.generic.Var;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.function.Predicate;
 
 public interface Context {
   ImmutableSeq<String> TOP_LEVEL_MOD = ImmutableSeq.empty();
@@ -60,8 +58,8 @@ public interface Context {
     throw new ResolvingInterrupted();
   }
 
-  class ResolvingInterrupted extends InterruptedException {
-    @Override public InterruptedException.@NotNull Stage stage() {
+  class ResolvingInterrupted extends InterruptException {
+    @Override public InterruptException.@NotNull Stage stage() {
       return Stage.Resolving;
     }
   }

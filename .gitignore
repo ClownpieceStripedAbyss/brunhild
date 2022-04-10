@@ -24,3 +24,5 @@ lombok.config
 /tgbot-*-all.jar
 imgui.ini
 /diagram.uml
+
+/test.bh
