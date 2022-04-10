@@ -133,13 +133,117 @@ public record BrunhildProducer(
   }
 
   private @NotNull Stmt stmt(@NotNull BrunhildParser.StmtContext ctx) {
-    // TODO: implement
-    throw new UnsatisfiedLinkError("TODO");
+    var sourcePos = sourcePosOf(ctx);
+    if (ctx instanceof BrunhildParser.AssignContext stmt)
+      return new Stmt.AssignStmt(sourcePos, lval(stmt.lval()), expr(stmt.expr()));
+    if (ctx instanceof BrunhildParser.ExprStmtContext stmt)
+      return new Stmt.ExprStmt(expr(stmt.expr()));
+    if (ctx instanceof BrunhildParser.BlockStmtContext stmt)
+      return new Stmt.BlockStmt(sourcePos, block(stmt.block()));
+    if (ctx instanceof BrunhildParser.IfContext stmt)
+      return new Stmt.IfStmt(sourcePos, cond(stmt.cond()), stmt(stmt.stmt(0)), stmt.KW_ELSE() == null ? Option.none() : Option.some(stmt(stmt.stmt(1))));
+    if (ctx instanceof BrunhildParser.WhileContext stmt)
+      return new Stmt.WhileStmt(sourcePos, cond(stmt.cond()), stmt(stmt.stmt()));
+    if (ctx instanceof BrunhildParser.BreakContext)
+      return new Stmt.BreakStmt(sourcePos);
+    if (ctx instanceof BrunhildParser.ContinueContext)
+      return new Stmt.ContinueStmt(sourcePos);
+    if (ctx instanceof BrunhildParser.ReturnContext stmt)
+      return new Stmt.ReturnStmt(sourcePos, stmt.expr() == null ? Option.none() : Option.some(expr(stmt.expr())));
+    return unreachable();
   }
 
   private @NotNull Expr expr(@NotNull BrunhildParser.ExprContext ctx) {
-    // TODO: implement
-    throw new UnsupportedOperationException("TODO");
+    return addExpr(ctx.addExpr());
+  }
+
+  private @NotNull Expr addExpr(@NotNull BrunhildParser.AddExprContext ctx) {
+    var sourcePos = sourcePosOf(ctx);
+    var mulExpr = mulExpr(ctx.mulExpr());
+    if (ctx.ADD() != null) return new Expr.BinaryExpr(sourcePos, Expr.BinOP.ADD, addExpr(ctx.addExpr()), mulExpr);
+    if (ctx.SUB() != null) return new Expr.BinaryExpr(sourcePos, Expr.BinOP.SUB, addExpr(ctx.addExpr()), mulExpr);
+    return mulExpr;
+  }
+
+  private @NotNull Expr mulExpr(@NotNull BrunhildParser.MulExprContext ctx) {
+    var sourcePos = sourcePosOf(ctx);
+    var unaryExpr = unaryExpr(ctx.unaryExpr());
+    if (ctx.MUL() != null) return new Expr.BinaryExpr(sourcePos, Expr.BinOP.MUL, mulExpr(ctx.mulExpr()), unaryExpr);
+    if (ctx.DIV() != null) return new Expr.BinaryExpr(sourcePos, Expr.BinOP.DIV, mulExpr(ctx.mulExpr()), unaryExpr);
+    if (ctx.MOD() != null) return new Expr.BinaryExpr(sourcePos, Expr.BinOP.MOD, mulExpr(ctx.mulExpr()), unaryExpr);
+    return unaryExpr;
+  }
+
+  private @NotNull Expr unaryExpr(@NotNull BrunhildParser.UnaryExprContext ctx) {
+    if (ctx.primaryExpr() != null) return primaryExpr(ctx.primaryExpr());
+    if (ctx.ID() != null) {
+      var sourcePos = sourcePosOf(ctx);
+      var id = ctx.ID().getText();
+      var appArg = ctx.appArg();
+      var args = appArg == null ? ImmutableSeq.<Expr>empty() : appArg.expr().stream().map(this::expr).collect(ImmutableSeq.factory());
+      return new Expr.AppExpr(sourcePos, new Expr.UnresolvedExpr(sourcePosOf(ctx.ID()), id), args);
+    } else {
+      var sourcePos = sourcePosOf(ctx);
+      if (ctx.ADD() != null) return new Expr.UnaryExpr(sourcePos, Expr.UnaryOP.POS, unaryExpr(ctx.unaryExpr()));
+      if (ctx.SUB() != null) return new Expr.UnaryExpr(sourcePos, Expr.UnaryOP.NEG, unaryExpr(ctx.unaryExpr()));
+      if (ctx.LOGICAL_NOT() != null) return new Expr.UnaryExpr(sourcePos, Expr.UnaryOP.LOGICAL_NOT, unaryExpr(ctx.unaryExpr()));
+      return unreachable();
+    }
+  }
+
+  private @NotNull Expr primaryExpr(@NotNull BrunhildParser.PrimaryExprContext ctx) {
+    if (ctx.expr() != null) return expr(ctx.expr());
+    if (ctx.lval() != null) return lval(ctx.lval());
+    if (ctx.number() != null) {
+      var number = ctx.number();
+      if (number.INT_LITERAL() != null) return new Expr.LitIntExpr(sourcePosOf(number), Integer.parseInt(number.INT_LITERAL().getText()));
+      if (number.FLOAT_LITERAL() != null) return new Expr.LitFloatExpr(sourcePosOf(number), Float.parseFloat(number.FLOAT_LITERAL().getText()));
+    }
+    return unreachable();
+  }
+
+  private @NotNull Expr lval(@NotNull BrunhildParser.LvalContext ctx) {
+    var id = ctx.ID().getText();
+    var sourcePos = sourcePosOf(ctx);
+    var expr = ctx.expr();
+    var unresolved = new Expr.UnresolvedExpr(sourcePos, id);
+    if (expr.isEmpty()) return unresolved;
+    return expr.stream()
+      .map(this::expr)
+      .collect(ImmutableSeq.factory())
+      .foldLeft((Expr) unresolved, (acc, idx) -> new Expr.IndexExpr(acc.sourcePos().union(idx.sourcePos()), acc, idx));
+  }
+
+  private @NotNull Expr cond(@NotNull BrunhildParser.CondContext ctx) {
+    return lOrExpr(ctx.lOrExpr());
+  }
+
+  private @NotNull Expr lOrExpr(@NotNull BrunhildParser.LOrExprContext ctx) {
+    var lAnd = lAndExpr(ctx.lAndExpr());
+    if (ctx.LOGICAL_OR() != null) return new Expr.BinaryExpr(sourcePosOf(ctx), Expr.BinOP.LOGICAL_OR, lOrExpr(ctx.lOrExpr()), lAnd);
+    return lAnd;
+  }
+
+  private @NotNull Expr lAndExpr(@NotNull BrunhildParser.LAndExprContext ctx) {
+    var eq = eqExpr(ctx.eqExpr());
+    if (ctx.LOGICAL_AND() != null) return new Expr.BinaryExpr(sourcePosOf(ctx), Expr.BinOP.LOGICAL_AND, lAndExpr(ctx.lAndExpr()), eq);
+    return eq;
+  }
+
+  private @NotNull Expr eqExpr(@NotNull BrunhildParser.EqExprContext ctx) {
+    var rel = relExpr(ctx.relExpr());
+    if (ctx.EQ() != null) return new Expr.BinaryExpr(sourcePosOf(ctx), Expr.BinOP.EQ, eqExpr(ctx.eqExpr()), rel);
+    if (ctx.NE() != null) return new Expr.BinaryExpr(sourcePosOf(ctx), Expr.BinOP.NE, eqExpr(ctx.eqExpr()), rel);
+    return rel;
+  }
+
+  private @NotNull Expr relExpr(@NotNull BrunhildParser.RelExprContext ctx) {
+    var add = addExpr(ctx.addExpr());
+    if (ctx.LT() != null) return new Expr.BinaryExpr(sourcePosOf(ctx), Expr.BinOP.LT, relExpr(ctx.relExpr()), add);
+    if (ctx.LE() != null) return new Expr.BinaryExpr(sourcePosOf(ctx), Expr.BinOP.LE, relExpr(ctx.relExpr()), add);
+    if (ctx.GT() != null) return new Expr.BinaryExpr(sourcePosOf(ctx), Expr.BinOP.GT, relExpr(ctx.relExpr()), add);
+    if (ctx.GE() != null) return new Expr.BinaryExpr(sourcePosOf(ctx), Expr.BinOP.GE, relExpr(ctx.relExpr()), add);
+    return add;
   }
 
   private <T> T unreachable() {
