@@ -1,27 +1,25 @@
 grammar Brunhild;
 
 // compilation unit
-program: (decl | fnDecl)+;
+program: programItem+;
+programItem: varDecl | fnDecl;
 
 // decl
-decl: constDecl | varDecl;
-constDecl: KW_CONST primitiveType constDeclItem (',' constDeclItem)* ';';
-constDeclItem: ID ('[' constExpr ']')* ASSIGN constInitVal;
-constInitVal: constExpr | '{' (constInitVal (',' constInitVal)*)? '}';
-
-varDecl: primitiveType varDeclItem (',' varDeclItem)* ';';
-varDeclItem: ID ('[' constExpr ']')* (ASSIGN varInitVal)?;
+varDecl: KW_CONST? primitiveType varDeclItem (',' varDeclItem)* ';';
+varDeclItem: ID arrayTypeSuffix* (ASSIGN varInitVal)?;
 varInitVal: expr | '{' (varInitVal (',' varInitVal)*)? '}';
 
 fnDecl: returnType ID '(' fnParams? ')' block;
 fnParams: fnParam (',' fnParam)*;
-fnParam: primitiveType ID ('[' ']' ('[' expr ']')* )?;
+fnParam: primitiveType ID arrayParamTypeSuffix?;
 
 block: '{' blockItem* '}';
-blockItem: decl | stmt;
+blockItem: varDecl | stmt;
 
 returnType: KW_VOID | primitiveType;
 primitiveType: KW_INT | KW_FLOAT;
+arrayParamTypeSuffix: '[' ']' ('[' expr ']')*;
+arrayTypeSuffix: '[' expr ']';
 
 // stmt
 stmt : lval ASSIGN expr ';'                       # assign
@@ -49,7 +47,6 @@ relExpr: addExpr | relExpr (LT | GT | LE | GE) addExpr;
 eqExpr: relExpr | eqExpr (EQ | NE) relExpr;
 lAndExpr: eqExpr | lAndExpr LOGICAL_AND eqExpr;
 lOrExpr: lAndExpr | lOrExpr LOGICAL_OR lAndExpr;
-constExpr: addExpr;
 
 // keywords
 KW_CONST: 'const';

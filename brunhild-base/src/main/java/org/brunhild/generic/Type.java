@@ -1,5 +1,6 @@
 package org.brunhild.generic;
 
+import org.brunhild.concrete.Expr;
 import org.jetbrains.annotations.NotNull;
 
 public sealed interface Type {
@@ -16,5 +17,12 @@ public sealed interface Type {
     }
   }
 
-  record Array(@NotNull Type elementType, int dimension) implements Type {}
+  record Const(@NotNull Type type) implements Type {}
+
+  record Array(@NotNull Type elementType, @NotNull Dimension dimension) implements Type {}
+
+  sealed interface Dimension {}
+  record DimInferred() implements Dimension {}
+  record DimConst(int dimension) implements Dimension {}
+  record DimExpr(@NotNull Expr expr) implements Dimension {}
 }

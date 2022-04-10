@@ -1,6 +1,7 @@
 package org.brunhild.concrete;
 
 import kala.collection.immutable.ImmutableSeq;
+import kala.control.Option;
 import org.brunhild.concrete.resolve.context.Context;
 import org.brunhild.core.Def;
 import org.brunhild.error.SourcePos;
@@ -8,6 +9,7 @@ import org.brunhild.generic.DefVar;
 import org.brunhild.generic.Type;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
 
 public sealed abstract class Decl implements Stmt {
   public final @NotNull SourcePos sourcePos;
@@ -54,18 +56,15 @@ public sealed abstract class Decl implements Stmt {
 
   public static final class VarDecl extends Decl {
     public final @NotNull DefVar<Def.VarDef, VarDecl> ref;
-    public @NotNull Expr body;
-    public final boolean constVar;
+    public @NotNull Option<Expr> body;
 
     public VarDecl(
       @NotNull SourcePos sourcePos,
       @NotNull String name,
-      @NotNull Expr body,
-      @NotNull Type result,
-      boolean constVar
+      @NotNull Option<Expr> body,
+      @NotNull Type result
     ) {
       super(sourcePos, result);
-      this.constVar = constVar;
       this.body = body;
       this.ref = DefVar.concrete(this, name);
     }

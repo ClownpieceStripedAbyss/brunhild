@@ -28,7 +28,7 @@ public interface StmtResolver {
       case Decl.VarDecl decl -> {
         var context = decl.context;
         assert context != null : "no shallow resolver?";
-        decl.body = decl.body.resolve(context);
+        decl.body = decl.body.map(e -> e.resolve(context));
         yield decl;
       }
       default -> throw new IllegalStateException("Top level cannot have statements" + stmt);
