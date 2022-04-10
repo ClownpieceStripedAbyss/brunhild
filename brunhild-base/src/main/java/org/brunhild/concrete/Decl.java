@@ -9,7 +9,7 @@ import org.brunhild.generic.Type;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public sealed abstract class Decl implements Stmt{
+public sealed abstract class Decl implements Stmt {
   public final @NotNull SourcePos sourcePos;
   public final @NotNull Type result;
   public @Nullable Context context;
@@ -31,8 +31,8 @@ public sealed abstract class Decl implements Stmt{
 
   public static final class FnDecl extends Decl {
     public final @NotNull DefVar<Def.FnDef, FnDecl> ref;
-    public final @NotNull ImmutableSeq<Expr.@NotNull Param> telescope;
-    public final @NotNull Stmt body;
+    public @NotNull ImmutableSeq<Expr.@NotNull Param> telescope;
+    public @NotNull Stmt body;
 
     public FnDecl(
       @NotNull SourcePos sourcePos,
@@ -54,7 +54,7 @@ public sealed abstract class Decl implements Stmt{
 
   public static final class VarDecl extends Decl {
     public final @NotNull DefVar<Def.VarDef, VarDecl> ref;
-    public final @NotNull Expr body;
+    public @NotNull Expr body;
     public final boolean constVar;
 
     public VarDecl(

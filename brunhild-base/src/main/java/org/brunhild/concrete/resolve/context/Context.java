@@ -11,6 +11,8 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.function.Predicate;
+
 public interface Context {
   ImmutableSeq<String> TOP_LEVEL_MOD = ImmutableSeq.empty();
 
@@ -42,6 +44,10 @@ public interface Context {
 
   default @NotNull BindContext bind(@NotNull String name, @NotNull LocalVar ref) {
     return new BindContext(this, name, ref);
+  }
+
+  default @NotNull BindContext bind(@NotNull LocalVar ref) {
+    return bind(ref.name(), ref);
   }
 
   default @NotNull ModuleContext derive(@NotNull String modName) {

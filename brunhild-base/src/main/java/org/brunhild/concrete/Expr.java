@@ -1,6 +1,8 @@
 package org.brunhild.concrete;
 
 import kala.collection.immutable.ImmutableSeq;
+import org.brunhild.concrete.resolve.ExprResolver;
+import org.brunhild.concrete.resolve.context.Context;
 import org.brunhild.error.SourcePos;
 import org.brunhild.generic.LocalVar;
 import org.brunhild.generic.Type;
@@ -101,5 +103,9 @@ public sealed interface Expr {
     UnaryOP(@NotNull String symbol) {
       this.symbol = symbol;
     }
+  }
+
+  default @NotNull Expr resolve(@NotNull Context context) {
+    return new ExprResolver(context).resolve(this);
   }
 }
