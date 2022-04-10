@@ -9,15 +9,17 @@ import org.brunhild.generic.Type;
 import org.brunhild.generic.Var;
 import org.jetbrains.annotations.NotNull;
 
-public interface Term {
+public sealed interface Term {
+  sealed interface LValueTerm extends Term {}
+
   record RefTerm(
     @NotNull Var var
-  ) implements Term {}
+  ) implements LValueTerm {}
 
   record IndexTerm(
     @NotNull Term term,
     @NotNull Term index
-  ) implements Term {}
+  ) implements LValueTerm {}
 
   record AppTerm(
     @NotNull Term fn,
@@ -51,7 +53,7 @@ public interface Term {
   record CoerceTerm(
     @NotNull Term term,
     @NotNull Type<Term> targetType
-  ) implements Term {}
+  ) implements LValueTerm {}
 
   record Param(
     @NotNull LocalVar ref,
