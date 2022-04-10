@@ -65,9 +65,9 @@ public sealed interface Expr {
   record Param(
     @NotNull SourcePos sourcePos,
     @NotNull LocalVar ref,
-    @NotNull Type type
+    @NotNull Type<Expr> type
   ) {
-    public Param(@NotNull Param param, @NotNull Type type) {
+    public Param(@NotNull Param param, @NotNull Type<Expr> type) {
       this(param.sourcePos, param.ref, type);
     }
   }

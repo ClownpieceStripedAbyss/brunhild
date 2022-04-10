@@ -28,6 +28,10 @@ public final class DefVar<Core extends Def, Concrete extends Decl> implements Va
     return new DefVar<>(concrete, null, name);
   }
 
+  public boolean isForeign() {
+    return this.concrete == null && this.core != null;
+  }
+
   @Override public boolean equals(Object o) {
     return this == o;
   }

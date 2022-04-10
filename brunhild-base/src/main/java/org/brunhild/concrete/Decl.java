@@ -13,10 +13,10 @@ import org.jetbrains.annotations.Nullable;
 
 public sealed abstract class Decl implements Stmt {
   public final @NotNull SourcePos sourcePos;
-  public final @NotNull Type result;
+  public final @NotNull Type<Expr> result;
   public @Nullable Context context;
 
-  protected Decl(@NotNull SourcePos sourcePos, @NotNull Type result) {
+  protected Decl(@NotNull SourcePos sourcePos, @NotNull Type<Expr> result) {
     this.sourcePos = sourcePos;
     this.result = result;
   }
@@ -25,7 +25,7 @@ public sealed abstract class Decl implements Stmt {
     return sourcePos;
   }
 
-  public @NotNull Type result() {
+  public @NotNull Type<Expr> result() {
     return result;
   }
 
@@ -41,7 +41,7 @@ public sealed abstract class Decl implements Stmt {
       @NotNull String name,
       @NotNull ImmutableSeq<Expr.@NotNull Param> telescope,
       @NotNull Stmt body,
-      @NotNull Type result
+      @NotNull Type<Expr> result
     ) {
       super(sourcePos, result);
       this.telescope = telescope;
@@ -62,7 +62,7 @@ public sealed abstract class Decl implements Stmt {
       @NotNull SourcePos sourcePos,
       @NotNull String name,
       @NotNull Option<Expr> body,
-      @NotNull Type result
+      @NotNull Type<Expr> result
     ) {
       super(sourcePos, result);
       this.body = body;

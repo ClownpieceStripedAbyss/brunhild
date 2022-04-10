@@ -40,10 +40,10 @@ public record BrunhildProducer(
     return ctx.varDeclItem().stream().map(c -> varDeclItem(c, isConst, type)).collect(ImmutableSeq.factory());
   }
 
-  private @NotNull Stmt varDeclItem(@NotNull BrunhildParser.VarDeclItemContext ctx, boolean isConst, @NotNull Type type) {
+  private @NotNull Stmt varDeclItem(@NotNull BrunhildParser.VarDeclItemContext ctx, boolean isConst, @NotNull Type<Expr> type) {
     var id = ctx.ID().getText();
     var maybeArray = arrayType(ctx.arrayTypeSuffix().stream(), type);
-    var maybeConst = isConst ? new Type.Const(maybeArray) : maybeArray;
+    var maybeConst = isConst ? new Type.Const<>(maybeArray) : maybeArray;
     if (isConst && ctx.ASSIGN() == null) {
       reporter.report(new ConstNotInitializedProblem(sourcePosOf(ctx), id));
       throw new ParsingInterrupted();
@@ -92,9 +92,9 @@ public record BrunhildProducer(
     return new Expr.Param(sourcePosOf(ctx), new LocalVar(id), type);
   }
 
-  private @NotNull Type arrayParamType(@NotNull BrunhildParser.ArrayParamTypeSuffixContext arrayType, @NotNull Type elementType) {
+  private @NotNull Type<Expr> arrayParamType(@NotNull BrunhildParser.ArrayParamTypeSuffixContext arrayType, @NotNull Type<Expr> elementType) {
     // first dimension is always inferred according to Brunhild.g4
-    var type = new Type.Array(elementType, new Type.DimInferred());
+    var type = new Type.Array<>(elementType, new Type.DimInferred<>());
     return arrayType.expr().stream()
       .map(this::expr)
       .map(Type.DimExpr::new)
@@ -102,7 +102,7 @@ public record BrunhildProducer(
       .foldLeft(type, Type.Array::new);
   }
 
-  private @NotNull Type arrayType(@NotNull Stream<BrunhildParser.ArrayTypeSuffixContext> arrayType, @NotNull Type elementType) {
+  private @NotNull Type<Expr> arrayType(@NotNull Stream<BrunhildParser.ArrayTypeSuffixContext> arrayType, @NotNull Type<Expr> elementType) {
     return arrayType
       .map(c -> expr(c.expr()))
       .map(Type.DimExpr::new)
@@ -110,14 +110,14 @@ public record BrunhildProducer(
       .foldLeft(elementType, Type.Array::new);
   }
 
-  private @NotNull Type returnType(@NotNull BrunhildParser.ReturnTypeContext ctx) {
-    if (ctx.KW_VOID() != null) return new Type.Void();
+  private @NotNull Type<Expr> returnType(@NotNull BrunhildParser.ReturnTypeContext ctx) {
+    if (ctx.KW_VOID() != null) return new Type.Void<>();
     return primitiveType(ctx.primitiveType());
   }
 
-  private @NotNull Type primitiveType(@NotNull BrunhildParser.PrimitiveTypeContext ctx) {
-    if (ctx.KW_INT() != null) return new Type.Int();
-    if (ctx.KW_FLOAT() != null) return new Type.Float();
+  private @NotNull Type<Expr> primitiveType(@NotNull BrunhildParser.PrimitiveTypeContext ctx) {
+    if (ctx.KW_INT() != null) return new Type.Int<>();
+    if (ctx.KW_FLOAT() != null) return new Type.Float<>();
     return unreachable();
   }
 

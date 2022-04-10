@@ -1,28 +1,22 @@
 package org.brunhild.generic;
 
-import org.brunhild.concrete.Expr;
 import org.jetbrains.annotations.NotNull;
 
-public sealed interface Type {
-  default @NotNull Type coerced() {
+public sealed interface Type<Term> {
+  default @NotNull Type<Term> coerced() {
     return this;
   }
 
-  record Void() implements Type {}
-  record Int() implements Type {}
-  record Float() implements Type {}
-  record Boolean() implements Type {
-    @Override public @NotNull Type coerced() {
-      return new Int();
-    }
-  }
+  record Void<Term>() implements Type<Term> {}
+  record Int<Term>() implements Type<Term> {}
+  record Float<Term>() implements Type<Term> {}
 
-  record Const(@NotNull Type type) implements Type {}
+  record Const<Term>(@NotNull Type<Term> type) implements Type<Term> {}
 
-  record Array(@NotNull Type elementType, @NotNull Dimension dimension) implements Type {}
+  record Array<Term>(@NotNull Type<Term> elementType, @NotNull Dimension<Term> dimension) implements Type<Term> {}
 
-  sealed interface Dimension {}
-  record DimInferred() implements Dimension {}
-  record DimConst(int dimension) implements Dimension {}
-  record DimExpr(@NotNull Expr expr) implements Dimension {}
+  sealed interface Dimension<Term> {}
+  record DimInferred<Term>() implements Dimension<Term> {}
+  record DimConst<Term>(int dimension) implements Dimension<Term> {}
+  record DimExpr<Term>(@NotNull Term term) implements Dimension<Term> {}
 }
