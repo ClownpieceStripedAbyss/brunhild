@@ -2,7 +2,6 @@ package org.brunhild.concrete.resolve.context;
 
 import org.brunhild.error.Reporter;
 import org.brunhild.error.SourceFile;
-import org.brunhild.generic.LocalVar;
 import org.brunhild.generic.Var;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

@@ -1,10 +1,10 @@
 package org.brunhild.parser;
 
 import org.antlr.v4.runtime.*;
-import org.brunhild.parser.problem.ParseError;
 import org.brunhild.error.Reporter;
 import org.brunhild.error.SourceFile;
 import org.brunhild.error.SourcePos;
+import org.brunhild.parser.problem.ParseError;
 import org.brunhild.parser.problem.ParsingInterrupted;
 import org.jetbrains.annotations.NotNull;
 

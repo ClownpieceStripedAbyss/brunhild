@@ -4,8 +4,6 @@ import kala.collection.immutable.ImmutableSeq;
 import kala.control.Option;
 import org.brunhild.concrete.problem.NameNotFoundProblem;
 import org.brunhild.error.*;
-import org.brunhild.error.InterruptException;
-import org.brunhild.generic.LocalVar;
 import org.brunhild.generic.Var;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;

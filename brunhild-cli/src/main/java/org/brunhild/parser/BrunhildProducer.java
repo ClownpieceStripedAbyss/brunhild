@@ -187,7 +187,8 @@ public record BrunhildProducer(
       var sourcePos = sourcePosOf(ctx);
       if (ctx.ADD() != null) return new Expr.UnaryExpr(sourcePos, Expr.UnaryOP.POS, unaryExpr(ctx.unaryExpr()));
       if (ctx.SUB() != null) return new Expr.UnaryExpr(sourcePos, Expr.UnaryOP.NEG, unaryExpr(ctx.unaryExpr()));
-      if (ctx.LOGICAL_NOT() != null) return new Expr.UnaryExpr(sourcePos, Expr.UnaryOP.LOGICAL_NOT, unaryExpr(ctx.unaryExpr()));
+      if (ctx.LOGICAL_NOT() != null)
+        return new Expr.UnaryExpr(sourcePos, Expr.UnaryOP.LOGICAL_NOT, unaryExpr(ctx.unaryExpr()));
       return unreachable();
     }
   }
@@ -197,8 +198,10 @@ public record BrunhildProducer(
     if (ctx.lval() != null) return lval(ctx.lval());
     if (ctx.number() != null) {
       var number = ctx.number();
-      if (number.INT_LITERAL() != null) return new Expr.LitIntExpr(sourcePosOf(number), Integer.parseInt(number.INT_LITERAL().getText()));
-      if (number.FLOAT_LITERAL() != null) return new Expr.LitFloatExpr(sourcePosOf(number), Float.parseFloat(number.FLOAT_LITERAL().getText()));
+      if (number.INT_LITERAL() != null)
+        return new Expr.LitIntExpr(sourcePosOf(number), Integer.parseInt(number.INT_LITERAL().getText()));
+      if (number.FLOAT_LITERAL() != null)
+        return new Expr.LitFloatExpr(sourcePosOf(number), Float.parseFloat(number.FLOAT_LITERAL().getText()));
     }
     return unreachable();
   }
@@ -221,13 +224,15 @@ public record BrunhildProducer(
 
   private @NotNull Expr lOrExpr(@NotNull BrunhildParser.LOrExprContext ctx) {
     var lAnd = lAndExpr(ctx.lAndExpr());
-    if (ctx.LOGICAL_OR() != null) return new Expr.BinaryExpr(sourcePosOf(ctx), Expr.BinOP.LOGICAL_OR, lOrExpr(ctx.lOrExpr()), lAnd);
+    if (ctx.LOGICAL_OR() != null)
+      return new Expr.BinaryExpr(sourcePosOf(ctx), Expr.BinOP.LOGICAL_OR, lOrExpr(ctx.lOrExpr()), lAnd);
     return lAnd;
   }
 
   private @NotNull Expr lAndExpr(@NotNull BrunhildParser.LAndExprContext ctx) {
     var eq = eqExpr(ctx.eqExpr());
-    if (ctx.LOGICAL_AND() != null) return new Expr.BinaryExpr(sourcePosOf(ctx), Expr.BinOP.LOGICAL_AND, lAndExpr(ctx.lAndExpr()), eq);
+    if (ctx.LOGICAL_AND() != null)
+      return new Expr.BinaryExpr(sourcePosOf(ctx), Expr.BinOP.LOGICAL_AND, lAndExpr(ctx.lAndExpr()), eq);
     return eq;
   }
 
