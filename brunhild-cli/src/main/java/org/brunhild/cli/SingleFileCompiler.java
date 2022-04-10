@@ -5,6 +5,7 @@ import kala.function.CheckedSupplier;
 import org.brunhild.concrete.Stmt;
 import org.brunhild.concrete.resolve.context.EmptyContext;
 import org.brunhild.concrete.resolve.context.ModuleContext;
+import org.brunhild.core.Def;
 import org.brunhild.error.InterruptException;
 import org.brunhild.error.Reporter;
 import org.brunhild.error.SourceFile;
@@ -36,6 +37,7 @@ public record SingleFileCompiler(
     return catching(reporter, flags, () -> {
       var parser = new BrunhildParserImpl(reporter);
       var program = parser.program(sourceFile);
+      Def.PrimFactory.install(ctx);
       var resolved = Stmt.resolve(program, ctx);
       return 0;
     });

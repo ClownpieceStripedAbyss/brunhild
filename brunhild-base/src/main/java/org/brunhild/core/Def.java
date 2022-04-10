@@ -2,7 +2,10 @@ package org.brunhild.core;
 
 import kala.collection.immutable.ImmutableSeq;
 import org.brunhild.concrete.Decl;
+import org.brunhild.concrete.resolve.context.ModuleContext;
+import org.brunhild.error.SourcePos;
 import org.brunhild.generic.DefVar;
+import org.brunhild.generic.LocalVar;
 import org.brunhild.generic.Type;
 import org.jetbrains.annotations.NotNull;
 
@@ -80,6 +83,51 @@ public abstract class Def {
 
     @Override @NotNull DefVar<Def.PrimDef, ?> ref() {
       return this.ref;
+    }
+  }
+
+  public enum PrimFactory {
+    GetInt("getint", intT("_")),
+    GetChar("getch", intT("_")),
+    GetFloat("getfloat", floatT("_")),
+    GetArray("getarray", intT("_"), arrayT(intT("array"))),
+    GetFloatArray("getfarray", intT("_"), arrayT(floatT("array"))),
+    PutInt("putint", voidT(), intT("i")),
+    PutChar("putch", voidT(), intT("ch")),
+    PutFloat("putfloat", voidT(), floatT("f")),
+    PutArray("putarray", voidT(), intT("size"), arrayT(intT("array"))),
+    PutFloatArray("putfarray", voidT(), intT("size"), arrayT(floatT("array"))),
+    ;
+
+    public static final @NotNull ImmutableSeq<PrimFactory> PRIMITIVES = ImmutableSeq.of(
+      GetInt, GetChar, GetFloat, GetArray, GetFloatArray,
+      PutInt, PutChar, PutFloat, PutArray, PutFloatArray
+    );
+
+    public static void install(@NotNull ModuleContext context) {
+      PRIMITIVES.forEach(prim -> context.addGlobal(SourcePos.NONE, prim.prim.ref.name(), prim.prim.ref));
+    }
+
+    public final @NotNull PrimDef prim;
+
+    PrimFactory(@NotNull String name, @NotNull Term.Param result, @NotNull Term.Param... params) {
+      this.prim = new PrimDef(name, ImmutableSeq.from(params), result.type());
+    }
+
+    private static @NotNull Term.Param intT(@NotNull String name) {
+      return new Term.Param(new LocalVar(name), new Type.Int<>());
+    }
+
+    private static @NotNull Term.Param floatT(@NotNull String name) {
+      return new Term.Param(new LocalVar(name), new Type.Float<>());
+    }
+
+    private static @NotNull Term.Param voidT() {
+      return new Term.Param(new LocalVar("_"), new Type.Void<>());
+    }
+
+    private static @NotNull Term.Param arrayT(@NotNull Term.Param param) {
+      return new Term.Param(param, new Type.Array<>(param.type(), new Type.DimInferred<>()));
     }
   }
 }
