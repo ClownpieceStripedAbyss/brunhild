@@ -6,6 +6,7 @@ public abstract class InterruptException extends RuntimeException {
   public enum Stage {
     Parsing,
     Resolving,
+    Tycking,
   }
 
   public abstract @NotNull Stage stage();

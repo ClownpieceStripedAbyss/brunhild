@@ -62,5 +62,9 @@ public sealed interface Term {
     public Param(@NotNull Term.Param param, @NotNull Type<Term> type) {
       this(param.ref, type);
     }
+
+    public Param(@NotNull Expr.Param param, @NotNull Type<Term> type) {
+      this(param.ref(), type);
+    }
   }
 }

@@ -15,6 +15,7 @@ public sealed abstract class Decl implements Stmt {
   public final @NotNull SourcePos sourcePos;
   public final @NotNull Type<Expr> result;
   public @Nullable Context context;
+  public @Nullable Def.Signature signature;
 
   protected Decl(@NotNull SourcePos sourcePos, @NotNull Type<Expr> result) {
     this.sourcePos = sourcePos;

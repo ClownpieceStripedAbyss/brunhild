@@ -94,7 +94,7 @@ public record BrunhildProducer(
 
   private @NotNull Type<Expr> arrayParamType(@NotNull BrunhildParser.ArrayParamTypeSuffixContext arrayType, @NotNull Type<Expr> elementType) {
     // first dimension is always inferred according to Brunhild.g4
-    var type = new Type.Array<>(elementType, new Type.DimInferred<>());
+    var type = new Type.Array<>(elementType, new Type.DimInferred());
     return arrayType.expr().stream()
       .map(this::expr)
       .map(Type.DimExpr::new)

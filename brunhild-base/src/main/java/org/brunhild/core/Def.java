@@ -35,8 +35,8 @@ public abstract class Def {
     public FnDef(
       @NotNull DefVar<FnDef, Decl.FnDecl> ref,
       @NotNull ImmutableSeq<Term.Param> telescope,
-      @NotNull Type<Term> result,
-      @NotNull Proclaim body
+      @NotNull Proclaim body,
+      @NotNull Type<Term> result
     ) {
       super(telescope, result);
       ref.core = this;
@@ -127,7 +127,12 @@ public abstract class Def {
     }
 
     private static @NotNull Term.Param arrayT(@NotNull Term.Param param) {
-      return new Term.Param(param, new Type.Array<>(param.type(), new Type.DimInferred<>()));
+      return new Term.Param(param, new Type.Array<>(param.type(), new Type.DimInferred()));
     }
+  }
+  public record Signature(
+    @NotNull ImmutableSeq<Term.@NotNull Param> tele,
+    @NotNull Type<Term> result
+  ) {
   }
 }
