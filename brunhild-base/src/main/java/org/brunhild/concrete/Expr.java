@@ -30,7 +30,7 @@ public sealed interface Expr {
 
   record AppExpr(
     @Override @NotNull SourcePos sourcePos,
-    @NotNull Expr expr,
+    @NotNull Expr fn,
     @NotNull ImmutableSeq<Expr> args
   ) implements Expr {}
 
