@@ -2,6 +2,7 @@ package org.brunhild.tyck;
 
 import kala.collection.mutable.MutableLinkedHashMap;
 import kala.collection.mutable.MutableMap;
+import kala.control.Option;
 import org.brunhild.core.Term;
 import org.brunhild.generic.LocalVar;
 import org.brunhild.generic.Type;
@@ -28,13 +29,17 @@ public interface Gamma<K, V> {
   }
 
   default @NotNull V get(@NotNull K var) {
+    return getOption(var).getOrThrow(() -> new IllegalArgumentException(var.toString()));
+  }
+
+  default @NotNull Option<V> getOption(@NotNull K var) {
     var ctx = this;
     while (ctx != null) {
       var res = ctx.getLocal(var);
-      if (res != null) return res;
+      if (res != null) return Option.some(res);
       ctx = ctx.parent();
     }
-    throw new IllegalArgumentException(var.toString());
+    return Option.none();
   }
 
   default <T> T with(@NotNull K var, @NotNull V v, @NotNull Supplier<T> action) {
