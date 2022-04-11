@@ -39,6 +39,7 @@ public record SingleFileCompiler(
       var program = parser.program(sourceFile);
       Def.PrimFactory.install(ctx);
       var resolved = Stmt.resolve(program, ctx);
+      var tycked = Stmt.tyck(reporter, resolved);
       return 0;
     });
   }

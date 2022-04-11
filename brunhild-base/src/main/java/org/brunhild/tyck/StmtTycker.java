@@ -18,6 +18,10 @@ import org.jetbrains.annotations.NotNull;
 public record StmtTycker(
   @NotNull Reporter reporter
 ) {
+  public @NotNull ImmutableSeq<Proclaim> tyckStmts(@NotNull ImmutableSeq<Stmt> resolved, @NotNull ExprTycker tycker) {
+    return resolved.map(stmt -> tyckTopLevel(stmt, tycker));
+  }
+
   public @NotNull Def tyckTopLevel(@NotNull Stmt stmt, @NotNull ExprTycker tycker) {
     return switch (stmt) {
       case Decl.FnDecl decl -> {
