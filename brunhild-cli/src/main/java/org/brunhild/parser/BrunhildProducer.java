@@ -99,7 +99,7 @@ public record BrunhildProducer(
       .map(this::expr)
       .map(Type.DimExpr::new)
       .collect(ImmutableSeq.factory())
-      .foldLeft(type, Type.Array::new);
+      .foldRight(type, (dim, arr) -> new Type.Array<>(arr, dim));
   }
 
   private @NotNull Type<Expr> arrayType(@NotNull Stream<BrunhildParser.ArrayTypeSuffixContext> arrayType, @NotNull Type<Expr> elementType) {
@@ -107,7 +107,7 @@ public record BrunhildProducer(
       .map(c -> expr(c.expr()))
       .map(Type.DimExpr::new)
       .collect(ImmutableSeq.factory())
-      .foldLeft(elementType, Type.Array::new);
+      .foldRight(elementType, (dim, arr) -> new Type.Array<>(arr, dim));
   }
 
   private @NotNull Type<Expr> returnType(@NotNull BrunhildParser.ReturnTypeContext ctx) {
