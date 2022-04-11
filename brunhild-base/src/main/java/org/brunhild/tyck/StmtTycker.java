@@ -31,7 +31,8 @@ public record StmtTycker(
       case Decl.VarDecl decl -> {
         var result = tycker.infer(decl.result).wellTyped();
         decl.signature = new Def.Signature(ImmutableSeq.empty(), result);
-        var body = tycker.check(decl.body, result).wellTyped();
+        var body = tycker.check(decl.body, result).wellTyped().fold(constGamma);
+        constGamma.put(decl.ref, body);
         yield new Def.VarDef(decl.ref, body, result);
       }
       default -> throw new IllegalStateException("Top level cannot have statements" + stmt);

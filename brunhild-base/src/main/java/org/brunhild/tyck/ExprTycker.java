@@ -14,9 +14,7 @@ import org.brunhild.error.SourcePos;
 import org.brunhild.generic.DefVar;
 import org.brunhild.generic.LocalVar;
 import org.brunhild.generic.Type;
-import org.brunhild.tyck.problem.ArgSizeMismatchError;
-import org.brunhild.tyck.problem.BadTypeError;
-import org.brunhild.tyck.problem.CoerceError;
+import org.brunhild.tyck.problem.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Function;
@@ -143,7 +141,7 @@ public record ExprTycker(
       case Expr.LitArrayExpr array -> {
         if (!(type instanceof Type.Array<Term> arrayType))
           yield fail(new CoerceError(array.sourcePos(), "array type", type, "to"));
-        // TODO: fold constants on Terms and check dimensions
+        // TODO: reorganize the array literal to fit the type
         var values = array.values().map(v -> check(v, arrayType.elementType()).wellTyped);
         yield new Result(new Term.InitializedArray(values), arrayType);
       }
@@ -219,9 +217,18 @@ public record ExprTycker(
         var dim = switch (arrayType.dimension()) {
           case Type.DimInferred ignored -> new Type.DimInferred();
           case Type.DimConst dimConst -> new Type.DimConst(dimConst.dimension());
-          case Type.DimExpr dimExpr ->
-            // TODO: fold the dimension to constant
-            new Type.DimExpr<>(check((Expr) dimExpr.term(), new Type.Int<Term>().mkConst()).wellTyped());
+          case Type.DimExpr dimExpr -> {
+            var dimE = (Expr) dimExpr.term();
+            var term = check(dimE, new Type.Int<Term>().mkConst()).wellTyped();
+            var folded = term.fold(constGamma);
+            // Java's type inference sucks
+            if (!(folded instanceof Term.LitTerm lit))
+              yield (Type.Dimension) fail(new ArraySizeIsNotConst(dimE.sourcePos()));
+            if (lit.literal().isRight()) yield (Type.Dimension) fail(new ArraySizeIsNotInt(dimE.sourcePos()));
+            if (lit.literal().getLeftValue().isRight())
+              yield (Type.Dimension) fail(new ArraySizeIsNotInt(dimE.sourcePos()));
+            yield new Type.DimConst(lit.literal().getLeftValue().getLeftValue());
+          }
         };
         yield new TResult(new Type.Array<>(elem, dim), new Type.Univ<>());
       }
