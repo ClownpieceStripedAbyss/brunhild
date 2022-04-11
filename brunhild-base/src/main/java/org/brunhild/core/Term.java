@@ -2,12 +2,15 @@ package org.brunhild.core;
 
 import kala.collection.immutable.ImmutableSeq;
 import kala.control.Either;
+import kala.tuple.Unit;
 import org.brunhild.concrete.Decl;
 import org.brunhild.concrete.Expr;
+import org.brunhild.core.ops.Folder;
 import org.brunhild.generic.DefVar;
 import org.brunhild.generic.LocalVar;
 import org.brunhild.generic.Type;
 import org.brunhild.generic.Var;
+import org.brunhild.tyck.Gamma;
 import org.jetbrains.annotations.NotNull;
 
 public sealed interface Term {
@@ -74,5 +77,9 @@ public sealed interface Term {
     public Param(@NotNull Expr.Param param, @NotNull Type<Term> type) {
       this(param.ref(), type);
     }
+  }
+
+  default @NotNull Term fold(@NotNull Gamma.ConstGamma gamma) {
+    return new Folder(gamma).traverse(this, Unit.unit());
   }
 }
