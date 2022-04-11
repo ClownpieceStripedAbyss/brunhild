@@ -9,7 +9,9 @@ import org.brunhild.core.Def;
 import org.brunhild.error.InterruptException;
 import org.brunhild.error.Reporter;
 import org.brunhild.error.SourceFile;
+import org.brunhild.optimize.TreeFold;
 import org.brunhild.parser.BrunhildParserImpl;
+import org.brunhild.tyck.Gamma;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
@@ -40,7 +42,8 @@ public record SingleFileCompiler(
       Def.PrimFactory.install(ctx);
       var resolved = Stmt.resolve(program, ctx);
       var tycked = Stmt.tyck(reporter, resolved);
-      System.out.println(tycked.joinToString("\n"));
+      var optimized = new TreeFold.DefaultFold().perform(tycked, new Gamma.ConstGamma());
+      System.out.println(optimized.joinToString("\n"));
       return 0;
     });
   }

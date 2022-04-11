@@ -15,7 +15,6 @@ import org.jetbrains.annotations.NotNull;
 public sealed interface Term {
   @NotNull Type<Term> type();
 
-  sealed interface LValueTerm extends Term {}
   sealed interface CallTerm extends Term {}
   sealed interface ArrayTerm extends Term {
     @Override @NotNull Type.Array<Term> type();
@@ -24,7 +23,7 @@ public sealed interface Term {
   record RefTerm(
     @Override @NotNull Type<Term> type,
     @NotNull Var var
-  ) implements LValueTerm {
+  ) implements Term {
     @Override public @NotNull String toString() {
       return var.name();
     }
@@ -33,7 +32,7 @@ public sealed interface Term {
   record IndexTerm(
     @NotNull Term term,
     @NotNull Term index
-  ) implements LValueTerm {
+  ) implements Term {
     @Override public @NotNull Type<Term> type() {
       var arrayType = term.type();
       assert arrayType instanceof Type.Array<Term> : "type checker bug?";
@@ -134,7 +133,7 @@ public sealed interface Term {
     @NotNull Term term,
     @NotNull Type<Term> fromType,
     @NotNull Type<Term> toType
-  ) implements LValueTerm {
+  ) implements Term {
     @Override public @NotNull Type<Term> type() {
       return toType;
     }

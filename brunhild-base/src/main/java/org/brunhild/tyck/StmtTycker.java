@@ -35,7 +35,7 @@ public record StmtTycker(
         var result = tycker.infer(decl.result).wellTyped();
         decl.signature = new Def.Signature(ImmutableSeq.empty(), result);
         var body = tycker.check(decl.body, result).wellTyped();
-        tycker.constGamma().put(decl.ref, body);
+        if (decl.isConst()) tycker.constGamma().put(decl.ref, body);
         yield new Def.VarDef(decl.ref, body, result);
       }
       default -> throw new IllegalStateException("Top level cannot have statements" + stmt);
@@ -47,9 +47,13 @@ public record StmtTycker(
       case Stmt.AssignStmt assignStmt -> {
         var lvalue = tycker.infer(assignStmt.lvalue());
         var rvalue = tycker.check(assignStmt.rvalue(), lvalue.type());
-        if (!(lvalue.wellTyped() instanceof Term.LValueTerm lValueTerm))
+        if (lvalue.wellTyped() instanceof Term.RefTerm ref) {
+          yield new Proclaim.VarAssignProclaim(ref.var(), rvalue.wellTyped());
+        } else if (lvalue.wellTyped() instanceof Term.IndexTerm indexTerm) {
+          yield new Proclaim.IndexAssignProclaim(indexTerm.term(), indexTerm.index(), rvalue.wellTyped());
+        } else {
           yield tycker.fail(new AssigningNonLvalue(assignStmt.sourcePos()));
-        yield new Proclaim.AssignProclaim(lValueTerm, rvalue.wellTyped());
+        }
       }
       case Stmt.IfStmt ifStmt -> {
         var cond = tycker.check(ifStmt.cond(), new Type.Int<>()).wellTyped();

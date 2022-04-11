@@ -12,7 +12,7 @@ public interface TreeFold extends TermFold, Optimizer.AstRewriter<Gamma.@NotNull
     return switch (proclaim) {
       case Def.VarDef varDef -> {
         var body = varDef.body = traverse(varDef.body, gamma);
-        gamma.put(varDef.ref, body);
+        if (varDef.isConst()) gamma.put(varDef.ref, body);
         yield varDef;
       }
       default -> AstRewriter.super.traverse(proclaim, gamma);

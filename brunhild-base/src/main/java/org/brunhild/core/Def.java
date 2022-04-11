@@ -71,6 +71,10 @@ public abstract sealed class Def implements Proclaim {
       this.body = body;
     }
 
+    public boolean isConst() {
+      return result instanceof Type.Const<Term>;
+    }
+
     @Override public @NotNull DefVar<Def.VarDef, Decl.VarDecl> ref() {
       return this.ref;
     }

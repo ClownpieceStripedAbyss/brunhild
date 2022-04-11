@@ -70,6 +70,10 @@ public sealed abstract class Decl implements Stmt {
       this.ref = DefVar.concrete(this, name);
     }
 
+    public boolean isConst() {
+      return result instanceof Type.Const<Expr>;
+    }
+
     @Override public @NotNull DefVar<Def.VarDef, VarDecl> ref() {
       return this.ref;
     }

@@ -7,6 +7,7 @@ import org.brunhild.generic.Type;
 import org.brunhild.tyck.Gamma;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.function.Function;
 import java.util.function.IntFunction;
 
 public interface TermFold extends TermOps<Gamma.ConstGamma> {
@@ -14,27 +15,34 @@ public interface TermFold extends TermOps<Gamma.ConstGamma> {
     return switch (term) {
       case Term.RefTerm ref -> gamma.getOption(ref.var()).map(v -> traverse(v, gamma)).getOrDefault(ref);
       case Term.UnaryTerm unary -> switch (unary.op()) {
-        case POS -> tryFold(gamma, unary.term(), i -> litInt(+i), f -> litFloat(+f));
-        case NEG -> tryFold(gamma, unary.term(), i -> litInt(-i), f -> litFloat(-f));
-        case LOGICAL_NOT -> tryFold(gamma, unary.term(), i -> litInt(i == 0 ? 1 : 0), TermFold::litFloat);
+        case POS -> tryFold(gamma, unary.term(),
+          t -> new Term.UnaryTerm(unary.op(), t),
+          i -> litInt(+i),
+          f -> litFloat(+f));
+        case NEG -> tryFold(gamma, unary.term(),
+          t -> new Term.UnaryTerm(unary.op(), t),
+          i -> litInt(-i),
+          f -> litFloat(-f));
+        case LOGICAL_NOT -> tryFold(gamma, unary.term(),
+          t -> new Term.UnaryTerm(unary.op(), t),
+          i -> litInt(i == 0 ? 1 : 0),
+          this::tyckerBug);
       };
       // TODO: flatten binary ops
       case Term.BinaryTerm bin -> switch (bin.op()) {
-        case ADD -> tryFoldBin(gamma, bin.lhs(), bin.rhs(), (l, r) -> litInt(l + r), (l, r) -> litFloat(l + r));
-        case SUB -> tryFoldBin(gamma, bin.lhs(), bin.rhs(), (l, r) -> litInt(l - r), (l, r) -> litFloat(l - r));
-        case MUL -> tryFoldBin(gamma, bin.lhs(), bin.rhs(), (l, r) -> litInt(l * r), (l, r) -> litFloat(l * r));
-        case DIV -> tryFoldBin(gamma, bin.lhs(), bin.rhs(), (l, r) -> litInt(l / r), (l, r) -> litFloat(l / r));
-        case MOD -> tryFoldBin(gamma, bin.lhs(), bin.rhs(), (l, r) -> litInt(l % r), this::tyckerBug);
-        case EQ -> tryFoldBin(gamma, bin.lhs(), bin.rhs(), (l, r) -> litInt(l == r ? 1 : 0), this::tyckerBug);
-        case NE -> tryFoldBin(gamma, bin.lhs(), bin.rhs(), (l, r) -> litInt(l != r ? 1 : 0), this::tyckerBug);
-        case LT -> tryFoldBin(gamma, bin.lhs(), bin.rhs(), (l, r) -> litInt(l < r ? 1 : 0), this::tyckerBug);
-        case LE -> tryFoldBin(gamma, bin.lhs(), bin.rhs(), (l, r) -> litInt(l <= r ? 1 : 0), this::tyckerBug);
-        case GT -> tryFoldBin(gamma, bin.lhs(), bin.rhs(), (l, r) -> litInt(l > r ? 1 : 0), this::tyckerBug);
-        case GE -> tryFoldBin(gamma, bin.lhs(), bin.rhs(), (l, r) -> litInt(l >= r ? 1 : 0), this::tyckerBug);
-        case LOGICAL_AND ->
-          tryFoldBin(gamma, bin.lhs(), bin.rhs(), (l, r) -> litInt(l == 1 && r == 1 ? 1 : 0), this::tyckerBug);
-        case LOGICAL_OR ->
-          tryFoldBin(gamma, bin.lhs(), bin.rhs(), (l, r) -> litInt(l == 1 || r == 1 ? 1 : 0), this::tyckerBug);
+        case ADD -> tryFoldBin(gamma, bin, (l, r) -> litInt(l + r), (l, r) -> litFloat(l + r));
+        case SUB -> tryFoldBin(gamma, bin, (l, r) -> litInt(l - r), (l, r) -> litFloat(l - r));
+        case MUL -> tryFoldBin(gamma, bin, (l, r) -> litInt(l * r), (l, r) -> litFloat(l * r));
+        case DIV -> tryFoldBin(gamma, bin, (l, r) -> litInt(l / r), (l, r) -> litFloat(l / r));
+        case MOD -> tryFoldBin(gamma, bin, (l, r) -> litInt(l % r), this::tyckerBug);
+        case EQ -> tryFoldBin(gamma, bin, (l, r) -> litInt(l == r ? 1 : 0), this::tyckerBug);
+        case NE -> tryFoldBin(gamma, bin, (l, r) -> litInt(l != r ? 1 : 0), this::tyckerBug);
+        case LT -> tryFoldBin(gamma, bin, (l, r) -> litInt(l < r ? 1 : 0), this::tyckerBug);
+        case LE -> tryFoldBin(gamma, bin, (l, r) -> litInt(l <= r ? 1 : 0), this::tyckerBug);
+        case GT -> tryFoldBin(gamma, bin, (l, r) -> litInt(l > r ? 1 : 0), this::tyckerBug);
+        case GE -> tryFoldBin(gamma, bin, (l, r) -> litInt(l >= r ? 1 : 0), this::tyckerBug);
+        case LOGICAL_AND -> tryFoldBin(gamma, bin, (l, r) -> litInt(l == 1 && r == 1 ? 1 : 0), this::tyckerBug);
+        case LOGICAL_OR -> tryFoldBin(gamma, bin, (l, r) -> litInt(l == 1 || r == 1 ? 1 : 0), this::tyckerBug);
       };
       case Term.IndexTerm indexTerm -> {
         var array = traverse(indexTerm.term(), gamma);
@@ -50,6 +58,7 @@ public interface TermFold extends TermOps<Gamma.ConstGamma> {
         });
       }
       case Term.CoerceTerm c -> tryFold(gamma, c.term(),
+        t -> new Term.CoerceTerm(t, c.fromType(), c.toType()),
         i -> {
           if (c.toType() instanceof Type.Float<Term>) return litFloat((float) i);
           return litInt(i);
@@ -73,6 +82,7 @@ public interface TermFold extends TermOps<Gamma.ConstGamma> {
   private @NotNull Term tryFold(
     @NotNull Gamma.ConstGamma gamma,
     @NotNull Term term,
+    @NotNull Function<Term, Term> restore,
     @NotNull IntFunction<Term> foldI,
     @NotNull FloatFunction<Term> foldF
   ) {
@@ -84,7 +94,7 @@ public interface TermFold extends TermOps<Gamma.ConstGamma> {
       if (left.isLeft()) return foldI.apply(left.getLeftValue());
       else return foldF.apply(left.getRightValue());
     }
-    return folded;
+    return restore.apply(folded);
   }
 
   private @NotNull Term tryFold(
@@ -92,7 +102,7 @@ public interface TermFold extends TermOps<Gamma.ConstGamma> {
     @NotNull Term term,
     @NotNull IntFunction<Term> fold
   ) {
-    return tryFold(gamma, term, fold, this::tyckerBug);
+    return tryFold(gamma, term, t -> t, fold, this::tyckerBug);
   }
 
   private <R, T> R tyckerBug(T t) {
@@ -105,14 +115,20 @@ public interface TermFold extends TermOps<Gamma.ConstGamma> {
 
   private @NotNull Term tryFoldBin(
     @NotNull Gamma.ConstGamma gamma,
-    @NotNull Term lhs,
-    @NotNull Term rhs,
+    @NotNull Term.BinaryTerm bin,
     @NotNull IntIntBiFunction<Term> foldInt,
     @NotNull FloatFloatBiFunction<Term> foldFloat
   ) {
-    return tryFold(gamma, lhs,
-      li -> tryFold(gamma, rhs, ri -> foldInt.apply(li, ri), this::tyckerBug),
-      lf -> tryFold(gamma, rhs, this::tyckerBug, rf -> foldFloat.apply(lf, rf)));
+    var lhs = traverse(bin.lhs(), gamma);
+    var rhs = traverse(bin.rhs(), gamma);
+    if (lhs == bin.lhs() && rhs == bin.rhs()) return bin;
+    if (lhs instanceof Term.LitTerm lhsLit && rhs instanceof Term.LitTerm rhsLit) {
+      return tryFold(gamma, lhsLit,
+        this::tyckerBug,
+        li -> tryFold(gamma, rhsLit, this::tyckerBug, ri -> foldInt.apply(li, ri), this::tyckerBug),
+        lf -> tryFold(gamma, rhsLit, this::tyckerBug, this::tyckerBug, rf -> foldFloat.apply(lf, rf)));
+    }
+    return new Term.BinaryTerm(bin.op(), lhs, rhs);
   }
 
   static @NotNull Term defaultValueOf(@NotNull Type<Term> type) {

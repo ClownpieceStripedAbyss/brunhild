@@ -2,16 +2,26 @@ package org.brunhild.core;
 
 import kala.collection.immutable.ImmutableSeq;
 import kala.control.Option;
+import org.brunhild.generic.Var;
 import org.jetbrains.annotations.NotNull;
 
-public sealed interface Proclaim permits Def, Proclaim.AssignProclaim, Proclaim.BlockProclaim, Proclaim.BreakProclaim,
-  Proclaim.ContinueProclaim, Proclaim.IfProclaim, Proclaim.ReturnProclaim, Proclaim.TermProclaim, Proclaim.WhileProclaim {
-  record AssignProclaim(
-    @NotNull Term.LValueTerm lvalue,
+public sealed interface Proclaim permits Def, Proclaim.BlockProclaim, Proclaim.BreakProclaim, Proclaim.ContinueProclaim, Proclaim.IfProclaim, Proclaim.IndexAssignProclaim, Proclaim.ReturnProclaim, Proclaim.TermProclaim, Proclaim.VarAssignProclaim, Proclaim.WhileProclaim {
+  record VarAssignProclaim(
+    @NotNull Var var,
     @NotNull Term rvalue
   ) implements Proclaim {
     @Override public @NotNull String toString() {
-      return String.format("%s = %s;", lvalue, rvalue);
+      return String.format("%s = %s;", var.name(), rvalue);
+    }
+  }
+
+  record IndexAssignProclaim(
+    @NotNull Term term,
+    @NotNull Term index,
+    @NotNull Term rvalue
+  ) implements Proclaim {
+    @Override public @NotNull String toString() {
+      return String.format("%s[%s] = %s;", term, index, rvalue);
     }
   }
 

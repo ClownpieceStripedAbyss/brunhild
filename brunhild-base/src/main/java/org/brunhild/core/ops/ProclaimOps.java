@@ -2,18 +2,21 @@ package org.brunhild.core.ops;
 
 import org.brunhild.core.Def;
 import org.brunhild.core.Proclaim;
-import org.brunhild.core.Term;
 import org.jetbrains.annotations.NotNull;
 
 public interface ProclaimOps<P> extends TermOps<P> {
   default @NotNull Proclaim traverse(@NotNull Proclaim proclaim, @NotNull P param) {
     return switch (proclaim) {
-      case Proclaim.AssignProclaim ass -> {
-        var lvalue = traverse(ass.lvalue(), param);
+      case Proclaim.VarAssignProclaim ass -> {
         var rvalue = traverse(ass.rvalue(), param);
-        if (lvalue == ass.lvalue() && rvalue == ass.rvalue()) yield ass;
-        assert lvalue instanceof Term.LValueTerm;
-        yield new Proclaim.AssignProclaim(((Term.LValueTerm) lvalue), rvalue);
+        if (rvalue == ass.rvalue()) yield ass;
+        yield new Proclaim.VarAssignProclaim(ass.var(), rvalue);
+      }
+      case Proclaim.IndexAssignProclaim ass -> {
+        var index = traverse(ass.index(), param);
+        var rvalue = traverse(ass.rvalue(), param);
+        if (index == ass.index() && rvalue == ass.rvalue()) yield ass;
+        yield new Proclaim.IndexAssignProclaim(ass.term(), index, rvalue);
       }
       case Proclaim.TermProclaim termProclaim -> {
         var term = traverse(termProclaim.term(), param);
