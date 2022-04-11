@@ -21,8 +21,11 @@ public record ExprTycker(
 ) {
   public @NotNull ExprResult infer(@NotNull Expr expr) {
     return switch (expr) {
-      case Expr.LitIntExpr lit -> new ExprResult(new Term.LitTerm(Either.left(lit.value())), new Type.Int<>());
-      case Expr.LitFloatExpr lit -> new ExprResult(new Term.LitTerm(Either.right(lit.value())), new Type.Float<>());
+      case Expr.LitIntExpr lit ->
+        new ExprResult(new Term.LitTerm(Either.left(Either.left(lit.value()))), new Type.Int<>());
+      case Expr.LitFloatExpr lit ->
+        new ExprResult(new Term.LitTerm(Either.left(Either.right(lit.value()))), new Type.Float<>());
+      case Expr.LitStringExpr lit -> new ExprResult(new Term.LitTerm(Either.right(lit.value())), new Type.String<>());
       case Expr.UnaryExpr unaryExpr -> switch (unaryExpr.op()) {
         case POS, NEG -> {
           var operand = infer(unaryExpr.expr());
@@ -120,6 +123,7 @@ public record ExprTycker(
       case Type.Float ignored -> new TypeResult(new Type.Float<>(), new Type.Univ<>());
       case Type.Int ignored -> new TypeResult(new Type.Int<>(), new Type.Univ<>());
       case Type.Bool ignored -> new TypeResult(new Type.Bool<>(), new Type.Univ<>());
+      case Type.String ignored -> new TypeResult(new Type.String<>(), new Type.Univ<>());
       case Type.Const<Expr> constType -> new TypeResult(infer(constType.type()).wellTyped(), new Type.Univ<>());
       case Type.Array<Expr> arrayType -> {
         var elem = infer(arrayType.elementType()).wellTyped();

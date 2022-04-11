@@ -18,6 +18,12 @@ public sealed interface Type<Term> {
   record Void<Term>() implements Type<Term> {}
   record Int<Term>() implements Type<Term> {}
   record Float<Term>() implements Type<Term> {}
+  record Bool<Term>() implements Type<Term> {
+    @Override public @NotNull Type<Term> coerced() {
+      return new Type.Int<>();
+    }
+  }
+  record String<Term>() implements Type<Term> {}
 
   record Const<Term>(@NotNull Type<Term> type) implements Type<Term> {
     @Override public @NotNull Type<Term> mkConst() {
@@ -31,12 +37,6 @@ public sealed interface Type<Term> {
     @NotNull ImmutableSeq<Type<Term>> paramTypes,
     @NotNull Type<Term> returnType
   ) implements Type<Term> {}
-
-  record Bool<Term>() implements Type<Term> {
-    @Override public @NotNull Type<Term> coerced() {
-      return new Type.Int<>();
-    }
-  }
 
   sealed interface Dimension {}
   record DimInferred() implements Dimension {}

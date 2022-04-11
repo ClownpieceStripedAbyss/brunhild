@@ -57,6 +57,11 @@ public sealed interface Expr {
     float value
   ) implements Expr {}
 
+  record LitStringExpr(
+    @Override @NotNull SourcePos sourcePos,
+    @NotNull String value
+  ) implements Expr {}
+
   record LitArrayExpr(
     @Override @NotNull SourcePos sourcePos,
     @NotNull ImmutableSeq<Expr> values

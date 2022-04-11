@@ -12,6 +12,7 @@ public record ExprResolver(@NotNull Context context) {
       case Expr.RefExpr ref -> ref;
       case Expr.LitFloatExpr lit -> lit;
       case Expr.LitIntExpr lit -> lit;
+      case Expr.LitStringExpr lit -> lit;
 
       case Expr.AppExpr app -> {
         var fn = resolve(app.fn());

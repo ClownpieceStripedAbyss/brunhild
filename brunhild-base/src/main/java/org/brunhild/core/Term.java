@@ -32,7 +32,7 @@ public sealed interface Term {
   ) implements Term {}
 
   record LitTerm(
-    Either<Integer, Float> literal
+    Either<Either<Integer, Float>, String> literal
   ) implements Term {}
 
   record ArrayTerm(
