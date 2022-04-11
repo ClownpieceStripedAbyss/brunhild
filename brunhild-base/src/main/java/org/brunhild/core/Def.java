@@ -47,6 +47,13 @@ public abstract sealed class Def implements Proclaim {
     @Override @NotNull DefVar<FnDef, Decl.FnDecl> ref() {
       return this.ref;
     }
+
+    @Override public @NotNull String toString() {
+      return String.format("fn %s(%s): %s = %s",
+        this.ref.name(), this.telescope.joinToString(", "),
+        this.result, this.body
+      );
+    }
   }
 
   public static final class VarDef extends Def {
@@ -67,6 +74,10 @@ public abstract sealed class Def implements Proclaim {
     @Override public @NotNull DefVar<Def.VarDef, Decl.VarDecl> ref() {
       return this.ref;
     }
+
+    @Override public @NotNull String toString() {
+      return String.format("let %s: %s = %s;", this.ref.name(), this.result, this.body);
+    }
   }
 
   public static final class PrimDef extends Def {
@@ -83,6 +94,10 @@ public abstract sealed class Def implements Proclaim {
 
     @Override @NotNull DefVar<Def.PrimDef, ?> ref() {
       return this.ref;
+    }
+
+    @Override public @NotNull String toString() {
+      return String.format("foreign fn %s(%s): %s;", this.ref.name(), this.telescope.joinToString(", "), this.result);
     }
   }
 

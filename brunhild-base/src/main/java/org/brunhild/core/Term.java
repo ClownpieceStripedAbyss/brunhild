@@ -25,7 +25,11 @@ public sealed interface Term {
   record RefTerm(
     @Override @NotNull Type<Term> type,
     @NotNull Var var
-  ) implements LValueTerm {}
+  ) implements LValueTerm {
+    @Override public @NotNull String toString() {
+      return var.name();
+    }
+  }
 
   record IndexTerm(
     @NotNull Term term,
@@ -36,6 +40,10 @@ public sealed interface Term {
       assert arrayType instanceof Type.Array<Term> : "type checker bug?";
       return ((Type.Array<Term>) arrayType).elementType();
     }
+
+    @Override public @NotNull String toString() {
+      return String.format("%s[%s]", term, index);
+    }
   }
 
   record FnCall(
@@ -45,6 +53,10 @@ public sealed interface Term {
     @Override public @NotNull Type<Term> type() {
       return fn.core.result();
     }
+
+    @Override public @NotNull String toString() {
+      return String.format("%s(%s)", fn.core.ref.name(), args.joinToString(", "));
+    }
   }
 
   record PrimCall(
@@ -53,6 +65,10 @@ public sealed interface Term {
   ) implements CallTerm {
     @Override public @NotNull Type<Term> type() {
       return prim.core.result();
+    }
+
+    @Override public @NotNull String toString() {
+      return String.format("%s(%s)", prim.core.ref.name(), args.joinToString(", "));
     }
   }
 
@@ -64,17 +80,28 @@ public sealed interface Term {
       if (literal.getLeftValue().isLeft()) return new Type.Int<>();
       return new Type.Float<>();
     }
+
+    @Override public @NotNull String toString() {
+      return literal.fold(l -> l.fold(String::valueOf, String::valueOf), r -> String.format("\"%s\"", r));
+    }
   }
 
   record InitializedArray(
     @Override @NotNull Type.Array<Term> type,
     @NotNull ImmutableSeq<Term> values
   ) implements ArrayTerm {
+    @Override public @NotNull String toString() {
+      return String.format("{%s}", values.joinToString(", "));
+    }
   }
 
   record UninitializedArray(
     @Override @NotNull Type.Array<Term> type
-  ) implements ArrayTerm {}
+  ) implements ArrayTerm {
+    @Override public @NotNull String toString() {
+      return "{<uninitialized>}";
+    }
+  }
 
   record BinaryTerm(
     @NotNull Expr.BinOP op,
@@ -85,6 +112,10 @@ public sealed interface Term {
       assert lhs.type().equals(rhs.type()) : "type checker bug?";
       return lhs.type();
     }
+
+    @Override public @NotNull String toString() {
+      return String.format("(%s %s %s)", lhs, op.symbol, rhs);
+    }
   }
 
   record UnaryTerm(
@@ -93,6 +124,10 @@ public sealed interface Term {
   ) implements Term {
     @Override public @NotNull Type<Term> type() {
       return term().type();
+    }
+
+    @Override public String toString() {
+      return String.format("(%s %s)", op.symbol, term);
     }
   }
 
@@ -103,6 +138,10 @@ public sealed interface Term {
   ) implements LValueTerm {
     @Override public @NotNull Type<Term> type() {
       return toType;
+    }
+
+    @Override public @NotNull String toString() {
+      return String.format("(%s as %s)", term, toType);
     }
   }
 
@@ -116,6 +155,10 @@ public sealed interface Term {
 
     public Param(@NotNull Expr.Param param, @NotNull Type<Term> type) {
       this(param.ref(), type);
+    }
+
+    @Override public String toString() {
+      return String.format("%s: %s", ref.name(), type);
     }
   }
 

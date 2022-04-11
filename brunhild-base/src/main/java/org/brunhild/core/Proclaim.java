@@ -9,31 +9,64 @@ public sealed interface Proclaim permits Def, Proclaim.AssignProclaim, Proclaim.
   record AssignProclaim(
     @NotNull Term.LValueTerm lvalue,
     @NotNull Term rvalue
-  ) implements Proclaim {}
+  ) implements Proclaim {
+    @Override public @NotNull String toString() {
+      return String.format("%s = %s;", lvalue, rvalue);
+    }
+  }
 
   record TermProclaim(
     @NotNull Term term
-  ) implements Proclaim {}
+  ) implements Proclaim {
+    @Override public @NotNull String toString() {
+      return term + ";";
+    }
+  }
 
   record BlockProclaim(
     @NotNull ImmutableSeq<Proclaim> block
-  ) implements Proclaim {}
+  ) implements Proclaim {
+    @Override public @NotNull String toString() {
+      return "{\n" + block.joinToString("\n  ", "  ", "") + "\n}";
+    }
+  }
 
   record IfProclaim(
     @NotNull Term condition,
     @NotNull Proclaim thenBranch,
     @NotNull Option<Proclaim> elseBranch
-  ) implements Proclaim {}
+  ) implements Proclaim {
+    @Override public @NotNull String toString() {
+      if (elseBranch.isEmpty()) return String.format("if (%s) %s", condition, thenBranch);
+      else return String.format("if (%s) %s else %s", condition, thenBranch, elseBranch.get());
+    }
+  }
 
   record WhileProclaim(
     @NotNull Term cond,
     @NotNull Proclaim body
-  ) implements Proclaim {}
+  ) implements Proclaim {
+    @Override public @NotNull String toString() {
+      return String.format("while (%s) %s", cond, body);
+    }
+  }
 
   record ReturnProclaim(
     @NotNull Option<Term> term
-  ) implements Proclaim {}
+  ) implements Proclaim {
+    @Override public @NotNull String toString() {
+      return term.map(t -> "return " + t + ";").getOrDefault("return;");
+    }
+  }
 
-  record BreakProclaim() implements Proclaim {}
-  record ContinueProclaim() implements Proclaim {}
+  record BreakProclaim() implements Proclaim {
+    @Override public @NotNull String toString() {
+      return "break;";
+    }
+  }
+  record ContinueProclaim() implements Proclaim {
+    @Override public @NotNull String toString() {
+      return "continue;";
+    }
+  }
 }

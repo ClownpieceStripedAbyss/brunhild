@@ -40,6 +40,7 @@ public record SingleFileCompiler(
       Def.PrimFactory.install(ctx);
       var resolved = Stmt.resolve(program, ctx);
       var tycked = Stmt.tyck(reporter, resolved);
+      System.out.println(tycked.joinToString("\n"));
       return 0;
     });
   }
