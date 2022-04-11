@@ -38,7 +38,7 @@ public interface TermOps<P> {
       case Term.InitializedArray initializedArray -> {
         var values = initializedArray.values().map(elem -> traverse(elem, param));
         if (values.sameElements(initializedArray.values())) yield initializedArray;
-        yield new Term.InitializedArray(values);
+        yield new Term.InitializedArray(initializedArray.type(), values);
       }
       case Term.UninitializedArray uninitializedArray -> uninitializedArray;
       case Term.PrimCall primCall -> {
