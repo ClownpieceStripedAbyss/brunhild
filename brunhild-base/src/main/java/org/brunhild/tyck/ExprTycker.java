@@ -216,7 +216,7 @@ public record ExprTycker(
           case Type.DimConst dimConst -> new Type.DimConst(dimConst.dimension());
           case Type.DimExpr dimExpr -> {
             var dimE = (Expr) dimExpr.term();
-            var term = check(dimE, new Type.Int<Term>().mkConst()).wellTyped();
+            var term = check(dimE, new Type.Int<>()).wellTyped();
             var folded = term.fold(constGamma);
             // Java's type inference sucks
             if (!(folded instanceof Term.LitTerm lit))

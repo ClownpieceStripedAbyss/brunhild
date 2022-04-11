@@ -7,12 +7,6 @@ public sealed interface Type<Term> {
   default @NotNull Type<Term> coerced() {
     return this;
   }
-  default @NotNull Type<Term> mkConst() {
-    return new Const<>(this);
-  }
-  default @NotNull Type<Term> mkArray(@NotNull Dimension dimension) {
-    return new Array<>(this, dimension);
-  }
 
   record Univ<Term>() implements Type<Term> {
     @Override public @NotNull java.lang.String toString() {
@@ -53,10 +47,6 @@ public sealed interface Type<Term> {
   }
 
   record Const<Term>(@NotNull Type<Term> type) implements Type<Term> {
-    @Override public @NotNull Type<Term> mkConst() {
-      return this;
-    }
-
     @Override public @NotNull java.lang.String toString() {
       return "const " + type;
     }
