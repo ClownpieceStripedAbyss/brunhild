@@ -15,6 +15,7 @@ import org.brunhild.generic.LocalVar;
 import org.brunhild.generic.Type;
 import org.brunhild.tyck.problem.ArgSizeMismatchError;
 import org.brunhild.tyck.problem.BadTypeError;
+import org.brunhild.tyck.problem.CoerceError;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Function;
@@ -23,39 +24,38 @@ public record ExprTycker(
   @NotNull Reporter reporter,
   @NotNull Gamma gamma
 ) {
-  public @NotNull ExprResult infer(@NotNull Expr expr) {
+  public @NotNull Result infer(@NotNull Expr expr) {
     return switch (expr) {
-      case Expr.LitIntExpr lit ->
-        new ExprResult(new Term.LitTerm(Either.left(Either.left(lit.value()))), new Type.Int<>());
+      case Expr.LitIntExpr lit -> new Result(new Term.LitTerm(Either.left(Either.left(lit.value()))), new Type.Int<>());
       case Expr.LitFloatExpr lit ->
-        new ExprResult(new Term.LitTerm(Either.left(Either.right(lit.value()))), new Type.Float<>());
-      case Expr.LitStringExpr lit -> new ExprResult(new Term.LitTerm(Either.right(lit.value())), new Type.String<>());
+        new Result(new Term.LitTerm(Either.left(Either.right(lit.value()))), new Type.Float<>());
+      case Expr.LitStringExpr lit -> new Result(new Term.LitTerm(Either.right(lit.value())), new Type.String<>());
       case Expr.UnaryExpr unaryExpr -> switch (unaryExpr.op()) {
         case POS, NEG -> {
           var operand = infer(unaryExpr.expr());
-          yield new ExprResult(new Term.UnaryTerm(unaryExpr.op(), operand.wellTyped), operand.type);
+          yield new Result(new Term.UnaryTerm(unaryExpr.op(), operand.wellTyped), operand.type);
         }
         case LOGICAL_NOT -> {
           var operand = check(unaryExpr.expr(), new Type.Bool<>());
-          yield new ExprResult(new Term.UnaryTerm(unaryExpr.op(), operand.wellTyped), operand.type);
+          yield new Result(new Term.UnaryTerm(unaryExpr.op(), operand.wellTyped), operand.type);
         }
       };
       case Expr.BinaryExpr binaryExpr -> switch (binaryExpr.op()) {
         case ADD, SUB, MUL, DIV -> {
           var lhs = infer(binaryExpr.lhs());
           var rhs = infer(binaryExpr.rhs());
-          var result = unifyMaybeCoerce(lhs.type, rhs.type);
-          yield new ExprResult(new Term.BinaryTerm(binaryExpr.op(), lhs.wellTyped, rhs.wellTyped), result.wellTyped);
+          var result = unifyMaybeCoerce(lhs, rhs);
+          yield new Result(new Term.BinaryTerm(binaryExpr.op(), result.lhs.wellTyped, result.rhs.wellTyped), result.type.wellTyped);
         }
         case MOD -> {
           var lhs = check(binaryExpr.lhs(), new Type.Int<>());
           var rhs = check(binaryExpr.rhs(), new Type.Int<>());
-          yield new ExprResult(new Term.BinaryTerm(binaryExpr.op(), lhs.wellTyped, rhs.wellTyped), new Type.Int<>());
+          yield new Result(new Term.BinaryTerm(binaryExpr.op(), lhs.wellTyped, rhs.wellTyped), new Type.Int<>());
         }
         case LOGICAL_AND, LOGICAL_OR, EQ, NE, LT, LE, GT, GE -> {
           var lhs = check(binaryExpr.lhs(), new Type.Bool<>());
           var rhs = check(binaryExpr.rhs(), new Type.Bool<>());
-          yield new ExprResult(new Term.BinaryTerm(binaryExpr.op(), lhs.wellTyped, rhs.wellTyped), new Type.Bool<>());
+          yield new Result(new Term.BinaryTerm(binaryExpr.op(), lhs.wellTyped, rhs.wellTyped), new Type.Bool<>());
         }
       };
       case Expr.AppExpr appExpr -> {
@@ -82,30 +82,30 @@ public record ExprTycker(
         if (!(array.type instanceof Type.Array<Term> arrayType))
           yield fail(BadTypeError.array(indexExpr.expr(), array.type));
         var index = check(indexExpr.index(), new Type.Int<>()).wellTyped;
-        yield new ExprResult(new Term.IndexTerm(array.wellTyped, index), arrayType.elementType());
+        yield new Result(new Term.IndexTerm(array.wellTyped, index), arrayType.elementType());
       }
       case Expr.RefExpr ref -> switch (ref.resolved()) {
         case LocalVar var -> {
           var ty = gamma.get(var);
-          yield new ExprResult(new Term.RefTerm(var), ty);
+          yield new Result(new Term.RefTerm(var), ty);
         }
         case DefVar<?, ?> defVar -> switch (defVar.concrete) {
           case Decl.FnDecl fnDecl -> {
             var signature = fnDecl.signature;
             assert signature != null : "we need dependency graph now!";
             var tele = signature.tele().map(Term.Param::type);
-            yield new ExprResult(new Term.RefTerm(fnDecl.ref), new Type.Fn<>(tele, signature.result()));
+            yield new Result(new Term.RefTerm(fnDecl.ref), new Type.Fn<>(tele, signature.result()));
           }
           case Decl.VarDecl varDecl -> {
             var signature = varDecl.signature;
             assert signature != null : "we need dependency graph now!";
-            yield new ExprResult(new Term.RefTerm(varDecl.ref), signature.result());
+            yield new Result(new Term.RefTerm(varDecl.ref), signature.result());
           }
           case null -> {
             // we are referencing primitives
             var prim = ((Def.PrimDef) defVar.core);
             var tele = prim.telescope().map(Term.Param::type);
-            yield new ExprResult(new Term.RefTerm(prim.ref), new Type.Fn<>(tele, prim.result()));
+            yield new Result(new Term.RefTerm(prim.ref), new Type.Fn<>(tele, prim.result()));
           }
           case default -> throw new IllegalStateException("Unknown concrete: " + defVar.concrete.getClass());
         };
@@ -115,20 +115,20 @@ public record ExprTycker(
     };
   }
 
-  private @NotNull ExprResult tyckPrimCall(@NotNull Expr.AppExpr appExpr, @NotNull Type.Fn<Term> fnType, @NotNull Def.PrimDef prim) {
+  private @NotNull Result tyckPrimCall(@NotNull Expr.AppExpr appExpr, @NotNull Type.Fn<Term> fnType, @NotNull Def.PrimDef prim) {
     if (prim == Def.PrimFactory.StartTime.prim || prim == Def.PrimFactory.StopTime.prim) {
       var desugarPrim = prim == Def.PrimFactory.StartTime.prim
         ? Def.PrimFactory.StartTimeABI.prim
         : Def.PrimFactory.StopTimeABI.prim;
       var arg = new Term.LitTerm(Either.left(Either.left(0)));
-      return new ExprResult(new Term.PrimCall(desugarPrim.ref, ImmutableSeq.of(arg)), desugarPrim.result);
+      return new Result(new Term.PrimCall(desugarPrim.ref, ImmutableSeq.of(arg)), desugarPrim.result);
     } else {
       var checkArgSize = prim != Def.PrimFactory.Printf.prim;
       return makeCall(appExpr, fnType, checkArgSize, args -> new Term.PrimCall(prim.ref, args));
     }
   }
 
-  private @NotNull ExprResult makeCall(
+  private @NotNull Result makeCall(
     @NotNull Expr.AppExpr appExpr,
     @NotNull Type.Fn<Term> fnType,
     boolean checkArgSize,
@@ -138,18 +138,35 @@ public record ExprTycker(
     if (checkArgSize && !args.sizeEquals(fnType.paramTypes()))
       return fail(new ArgSizeMismatchError(appExpr.sourcePos(), fnType.paramTypes().size(), args.size()));
     var argsElab = args.zipView(fnType.paramTypes()).map(t -> check(t._1, t._2).wellTyped);
-    return new ExprResult(make.apply(argsElab.toImmutableSeq()), fnType.returnType());
+    return new Result(make.apply(argsElab.toImmutableSeq()), fnType.returnType());
   }
 
-  public @NotNull ExprResult check(@NotNull Expr expr, @NotNull Type<Term> type) {
+  public @NotNull Result check(@NotNull Expr expr, @NotNull Type<Term> type) {
+    return switch (expr) {
+      case Expr.LitArrayExpr array -> {
+        if (!(type instanceof Type.Array<Term> arrayType))
+          yield fail(new CoerceError(array.sourcePos(), "array type", type));
+        // TODO: fold constants on Terms and check dimensions
+        var values = array.values().map(v -> check(v, arrayType.elementType()).wellTyped);
+        yield new Result(new Term.ArrayTerm(values), arrayType);
+      }
+      default -> {
+        var infer = infer(expr);
+        var result = unifyMaybeCoerce(infer, type);
+        yield result.lhs;
+      }
+    };
+  }
+
+  public @NotNull Result check(@NotNull Option<Expr> expr, @NotNull Type<Term> type) {
     throw new UnsupportedOperationException("not implemented");
   }
 
-  public @NotNull ExprResult check(@NotNull Option<Expr> expr, @NotNull Type<Term> type) {
+  private @NotNull UnifyResult unifyMaybeCoerce(@NotNull Result lhs, @NotNull Result rhs) {
     throw new UnsupportedOperationException("not implemented");
   }
 
-  private @NotNull TypeResult unifyMaybeCoerce(@NotNull Type<Term> lhs, @NotNull Type<Term> rhs) {
+  private @NotNull UnifyResult unifyMaybeCoerce(@NotNull Result inferred, @NotNull Type<Term> against) {
     throw new UnsupportedOperationException("not implemented");
   }
 
@@ -158,14 +175,14 @@ public record ExprTycker(
     throw new TyckInterrupted();
   }
 
-  public @NotNull TypeResult infer(@NotNull Type<Expr> expr) {
+  public @NotNull ExprTycker.TResult infer(@NotNull Type<Expr> expr) {
     return switch (expr) {
-      case Type.Void ignored -> new TypeResult(new Type.Void<>(), new Type.Univ<>());
-      case Type.Float ignored -> new TypeResult(new Type.Float<>(), new Type.Univ<>());
-      case Type.Int ignored -> new TypeResult(new Type.Int<>(), new Type.Univ<>());
-      case Type.Bool ignored -> new TypeResult(new Type.Bool<>(), new Type.Univ<>());
-      case Type.String ignored -> new TypeResult(new Type.String<>(), new Type.Univ<>());
-      case Type.Const<Expr> constType -> new TypeResult(infer(constType.type()).wellTyped(), new Type.Univ<>());
+      case Type.Void ignored -> new TResult(new Type.Void<>(), new Type.Univ<>());
+      case Type.Float ignored -> new TResult(new Type.Float<>(), new Type.Univ<>());
+      case Type.Int ignored -> new TResult(new Type.Int<>(), new Type.Univ<>());
+      case Type.Bool ignored -> new TResult(new Type.Bool<>(), new Type.Univ<>());
+      case Type.String ignored -> new TResult(new Type.String<>(), new Type.Univ<>());
+      case Type.Const<Expr> constType -> new TResult(infer(constType.type()).wellTyped(), new Type.Univ<>());
       case Type.Array<Expr> arrayType -> {
         var elem = infer(arrayType.elementType()).wellTyped();
         var dim = switch (arrayType.dimension()) {
@@ -174,9 +191,9 @@ public record ExprTycker(
           case Type.DimExpr dimExpr ->
             new Type.DimExpr<>(check((Expr) dimExpr.term(), new Type.Int<Term>().mkConst()).wellTyped());
         };
-        yield new TypeResult(new Type.Array<>(elem, dim), new Type.Univ<>());
+        yield new TResult(new Type.Array<>(elem, dim), new Type.Univ<>());
       }
-      case Type.Fn<Expr> fn -> new TypeResult(new Type.Fn<>(
+      case Type.Fn<Expr> fn -> new TResult(new Type.Fn<>(
         fn.paramTypes().map(p -> infer(p).wellTyped),
         infer(fn.returnType()).wellTyped),
         new Type.Univ<>());
@@ -184,8 +201,9 @@ public record ExprTycker(
     };
   }
 
-  public record ExprResult(@NotNull Term wellTyped, @NotNull Type<Term> type) {}
-  public record TypeResult(@NotNull Type<Term> wellTyped, @NotNull Type<Term> type) {}
+  public record Result(@NotNull Term wellTyped, @NotNull Type<Term> type) {}
+  public record TResult(@NotNull Type<Term> wellTyped, @NotNull Type<Term> type) {}
+  public record UnifyResult(@NotNull Result lhs, @NotNull Result rhs, @NotNull TResult type) {}
 
   public static class TyckInterrupted extends InterruptException {
     @Override public @NotNull Stage stage() {
