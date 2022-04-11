@@ -2,7 +2,6 @@ package org.brunhild.core;
 
 import kala.collection.immutable.ImmutableSeq;
 import kala.control.Either;
-import kala.tuple.Unit;
 import org.brunhild.concrete.Decl;
 import org.brunhild.concrete.Expr;
 import org.brunhild.core.ops.TermFold;
@@ -163,6 +162,6 @@ public sealed interface Term {
   }
 
   default @NotNull Term fold(@NotNull Gamma.ConstGamma gamma) {
-    return new TermFold(gamma).traverse(this, Unit.unit());
+    return new TermFold.DefaultFold().traverse(this, gamma);
   }
 }
