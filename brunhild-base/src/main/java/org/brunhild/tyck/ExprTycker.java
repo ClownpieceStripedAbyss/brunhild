@@ -25,10 +25,14 @@ public record ExprTycker(
   @NotNull Gamma.TypeGamma gamma,
   @NotNull Gamma.ConstGamma constGamma
 ) {
+  public @NotNull ExprTycker derive() {
+    return new ExprTycker(reporter, gamma.derive(), constGamma.derive());
+  }
+
   public @NotNull Result infer(@NotNull Expr expr) {
     return switch (expr) {
-      case Expr.LitIntExpr lit -> new Result(new Term.LitTerm(Either.left(Either.left(lit.value()))));
-      case Expr.LitFloatExpr lit -> new Result(new Term.LitTerm(Either.left(Either.right(lit.value()))));
+      case Expr.LitIntExpr lit -> new Result(Folder.litInt(lit.value()));
+      case Expr.LitFloatExpr lit -> new Result(Folder.litFloat(lit.value()));
       case Expr.LitStringExpr lit -> new Result(new Term.LitTerm(Either.right(lit.value())));
       case Expr.UnaryExpr unaryExpr -> switch (unaryExpr.op()) {
         case POS, NEG -> {
@@ -117,7 +121,7 @@ public record ExprTycker(
       var desugarPrim = prim == Def.PrimFactory.StartTime.prim
         ? Def.PrimFactory.StartTimeABI.prim
         : Def.PrimFactory.StopTimeABI.prim;
-      var arg = new Term.LitTerm(Either.left(Either.left(0)));
+      var arg = Folder.litInt(appExpr.sourcePos().startLine());
       return new Result(new Term.PrimCall(desugarPrim.ref, ImmutableSeq.of(arg)));
     } else {
       var checkArgSize = prim != Def.PrimFactory.Printf.prim;
@@ -193,7 +197,7 @@ public record ExprTycker(
     return new UnifyResult(coercedResult, coercedResult, against);
   }
 
-  private <T> T fail(@NotNull Problem problem) {
+  public <T> T fail(@NotNull Problem problem) {
     reporter.report(problem);
     throw new TyckInterrupted();
   }

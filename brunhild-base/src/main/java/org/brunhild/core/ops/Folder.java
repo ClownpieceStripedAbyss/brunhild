@@ -47,11 +47,11 @@ public record Folder(
     };
   }
 
-  private static @NotNull Term litInt(int i) {
+  public static @NotNull Term litInt(int i) {
     return new Term.LitTerm(Either.left(Either.left(i)));
   }
 
-  private static @NotNull Term litFloat(float f) {
+  public static @NotNull Term litFloat(float f) {
     return new Term.LitTerm(Either.left(Either.right(f)));
   }
 

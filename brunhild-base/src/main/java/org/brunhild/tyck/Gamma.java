@@ -15,6 +15,7 @@ import java.util.function.Supplier;
 public interface Gamma<K, V> {
   @Nullable Gamma<K, V> parent();
   @NotNull MutableMap<K, V> ctx();
+  @NotNull Gamma<K, V> derive();
 
   default void put(@NotNull K var, @NotNull V v) {
     ctx().put(var, v);
@@ -61,6 +62,10 @@ public interface Gamma<K, V> {
 
     public void put(Term.@NotNull Param param) {
       put(param.ref(), param.type());
+    }
+
+    @Override public @NotNull TypeGamma derive() {
+      return new TypeGamma(this, MutableLinkedHashMap.of());
     }
   }
 
