@@ -18,7 +18,8 @@ public interface Gamma<K, V> {
   @NotNull Gamma<K, V> derive();
 
   default void put(@NotNull K var, @NotNull V v) {
-    ctx().put(var, v);
+    var prev = ctx().put(var, v);
+    if (prev.isDefined()) throw new IllegalStateException("collision should not happen if using object identity");
   }
 
   default @Nullable V getLocal(@NotNull K var) {

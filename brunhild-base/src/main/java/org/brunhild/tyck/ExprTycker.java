@@ -26,7 +26,7 @@ public record ExprTycker(
   @NotNull Gamma.ConstGamma constGamma
 ) {
   public @NotNull ExprTycker derive() {
-    return new ExprTycker(reporter, gamma.derive(), constGamma.derive());
+    return new ExprTycker(reporter, gamma, constGamma);
   }
 
   public @NotNull Result infer(@NotNull Expr expr) {
