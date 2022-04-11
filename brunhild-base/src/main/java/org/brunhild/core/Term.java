@@ -2,6 +2,7 @@ package org.brunhild.core;
 
 import kala.collection.immutable.ImmutableSeq;
 import kala.control.Either;
+import org.brunhild.concrete.Decl;
 import org.brunhild.concrete.Expr;
 import org.brunhild.generic.DefVar;
 import org.brunhild.generic.LocalVar;
@@ -11,6 +12,7 @@ import org.jetbrains.annotations.NotNull;
 
 public sealed interface Term {
   sealed interface LValueTerm extends Term {}
+  sealed interface CallTerm extends Term {}
 
   record RefTerm(
     @NotNull Var var
@@ -21,15 +23,15 @@ public sealed interface Term {
     @NotNull Term index
   ) implements LValueTerm {}
 
-  record AppTerm(
-    @NotNull Term fn,
+  record FnCall(
+    @NotNull DefVar<Def.FnDef, Decl.FnDecl> fn,
     @NotNull ImmutableSeq<Term> args
-  ) implements Term {}
+  ) implements CallTerm {}
 
-  record PrimAppTerm(
+  record PrimCall(
     @NotNull DefVar<Def.PrimDef, ?> prim,
     @NotNull ImmutableSeq<Term> args
-  ) implements Term {}
+  ) implements CallTerm {}
 
   record LitTerm(
     Either<Either<Integer, Float>, String> literal

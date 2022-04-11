@@ -1,5 +1,6 @@
 package org.brunhild.tyck;
 
+import kala.collection.immutable.ImmutableSeq;
 import kala.control.Either;
 import kala.control.Option;
 import org.brunhild.concrete.Decl;
@@ -12,8 +13,11 @@ import org.brunhild.error.Reporter;
 import org.brunhild.generic.DefVar;
 import org.brunhild.generic.LocalVar;
 import org.brunhild.generic.Type;
+import org.brunhild.tyck.problem.ArgSizeMismatchError;
 import org.brunhild.tyck.problem.BadTypeError;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.function.Function;
 
 public record ExprTycker(
   @NotNull Reporter reporter,
@@ -58,9 +62,20 @@ public record ExprTycker(
         var fnRes = infer(appExpr.fn());
         if (!(fnRes.type instanceof Type.Fn<Term> fnType)) yield fail(BadTypeError.fn(appExpr.fn(), fnRes.type));
         var fn = fnRes.wellTyped;
-        var args = appExpr.args();
-        var argsElab = args.zipView(fnType.paramTypes()).map(t -> check(t._1, t._2).wellTyped);
-        yield new ExprResult(new Term.AppTerm(fn, argsElab.toImmutableSeq()), fnType.returnType());
+        // TODO: more cases if we support indirect call in the future (like pointers)
+        var callRef = switch (fn) {
+          case Term.RefTerm ref && ref.var() instanceof DefVar<?, ?> defVar -> defVar;
+          default -> throw new UnsupportedOperationException("we need indirect call now!");
+        };
+        if (callRef.core != null && callRef.core instanceof Def.PrimDef prim) {
+          yield tyckPrimCall(appExpr, fnType, prim);
+        } else if (callRef.concrete instanceof Decl.FnDecl) {
+          @SuppressWarnings("unchecked")
+          var fnRef = (DefVar<Def.FnDef, Decl.FnDecl>) callRef;
+          yield makeCall(appExpr, fnType, true, args -> new Term.FnCall(fnRef, args));
+        } else {
+          throw new UnsupportedOperationException("we need indirect call now!");
+        }
       }
       case Expr.IndexExpr indexExpr -> {
         var array = infer(indexExpr.expr());
@@ -98,6 +113,32 @@ public record ExprTycker(
       };
       default -> throw new IllegalStateException("no rule");
     };
+  }
+
+  private @NotNull ExprResult tyckPrimCall(@NotNull Expr.AppExpr appExpr, @NotNull Type.Fn<Term> fnType, @NotNull Def.PrimDef prim) {
+    if (prim == Def.PrimFactory.StartTime.prim || prim == Def.PrimFactory.StopTime.prim) {
+      var desugarPrim = prim == Def.PrimFactory.StartTime.prim
+        ? Def.PrimFactory.StartTimeABI.prim
+        : Def.PrimFactory.StopTimeABI.prim;
+      var arg = new Term.LitTerm(Either.left(Either.left(0)));
+      return new ExprResult(new Term.PrimCall(desugarPrim.ref, ImmutableSeq.of(arg)), desugarPrim.result);
+    } else {
+      var checkArgSize = prim != Def.PrimFactory.Printf.prim;
+      return makeCall(appExpr, fnType, checkArgSize, args -> new Term.PrimCall(prim.ref, args));
+    }
+  }
+
+  private @NotNull ExprResult makeCall(
+    @NotNull Expr.AppExpr appExpr,
+    @NotNull Type.Fn<Term> fnType,
+    boolean checkArgSize,
+    @NotNull Function<ImmutableSeq<Term>, Term.CallTerm> make
+  ) {
+    var args = appExpr.args();
+    if (checkArgSize && !args.sizeEquals(fnType.paramTypes()))
+      return fail(new ArgSizeMismatchError(appExpr.sourcePos(), fnType.paramTypes().size(), args.size()));
+    var argsElab = args.zipView(fnType.paramTypes()).map(t -> check(t._1, t._2).wellTyped);
+    return new ExprResult(make.apply(argsElab.toImmutableSeq()), fnType.returnType());
   }
 
   public @NotNull ExprResult check(@NotNull Expr expr, @NotNull Type<Term> type) {
