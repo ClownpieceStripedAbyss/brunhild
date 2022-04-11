@@ -1,54 +1,74 @@
 package org.brunhild.tyck;
 
-import kala.collection.mutable.MutableHashMap;
+import kala.collection.mutable.MutableLinkedHashMap;
+import kala.collection.mutable.MutableMap;
 import org.brunhild.core.Term;
 import org.brunhild.generic.LocalVar;
 import org.brunhild.generic.Type;
+import org.brunhild.generic.Var;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Supplier;
 
-public record Gamma(
-  @Nullable Gamma parent,
-  @NotNull MutableHashMap<LocalVar, Type<Term>> ctx
-) {
-  public Gamma() {
-    this(null, MutableHashMap.create());
+public interface Gamma<K, V> {
+  @Nullable Gamma<K, V> parent();
+  @NotNull MutableMap<K, V> ctx();
+
+  default void put(@NotNull K var, @NotNull V v) {
+    ctx().put(var, v);
   }
 
-  public void put(@NotNull LocalVar var, @NotNull Type<Term> type) {
-    ctx.put(var, type);
+  default @Nullable V getLocal(@NotNull K var) {
+    return ctx().getOrNull(var);
   }
 
-  public void put(Term.@NotNull Param param) {
-    put(param.ref(), param.type());
+  default void remove(@NotNull K var) {
+    ctx().remove(var);
   }
 
-  public @Nullable Type<Term> getLocal(@NotNull LocalVar var) {
-    return ctx.getOrNull(var);
-  }
-
-  public void remove(@NotNull LocalVar var) {
-    ctx.remove(var);
-  }
-
-  public @NotNull Type<Term> get(@NotNull LocalVar var) {
+  default @NotNull V get(@NotNull K var) {
     var ctx = this;
     while (ctx != null) {
       var res = ctx.getLocal(var);
       if (res != null) return res;
       ctx = ctx.parent();
     }
-    throw new IllegalArgumentException(var.name());
+    throw new IllegalArgumentException(var.toString());
   }
 
-  public <T> T with(@NotNull LocalVar var, @NotNull Type<Term> type, @NotNull Supplier<T> action) {
-    put(var, type);
+  default <T> T with(@NotNull K var, @NotNull V v, @NotNull Supplier<T> action) {
+    put(var, v);
     try {
       return action.get();
     } finally {
       remove(var);
+    }
+  }
+
+  record TypeGamma(
+    @Override @Nullable TypeGamma parent,
+    @Override @NotNull MutableMap<LocalVar, Type<Term>> ctx
+  ) implements Gamma<LocalVar, Type<Term>> {
+    public TypeGamma() {
+      this(null, MutableLinkedHashMap.of());
+    }
+
+    public void put(Term.@NotNull Param param) {
+      put(param.ref(), param.type());
+    }
+  }
+
+  record ConstGamma(
+    @Override @Nullable ConstGamma parent,
+    @Override @NotNull MutableMap<Var, Term> ctx
+  ) implements Gamma<Var, Term> {
+    public ConstGamma() {
+      this(null, MutableLinkedHashMap.of());
+    }
+
+    public @NotNull ConstGamma derive() {
+      return new ConstGamma(this, MutableLinkedHashMap.of());
     }
   }
 }

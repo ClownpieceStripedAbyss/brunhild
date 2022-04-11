@@ -12,10 +12,11 @@ import org.brunhild.generic.Type;
 import org.jetbrains.annotations.NotNull;
 
 public record StmtTycker(
-  @NotNull Reporter reporter
+  @NotNull Reporter reporter,
+  @NotNull Gamma.ConstGamma constGamma
 ) {
   public @NotNull ExprTycker exprTycker() {
-    return new ExprTycker(reporter, new Gamma());
+    return new ExprTycker(reporter, new Gamma.TypeGamma(), constGamma.derive());
   }
 
   public @NotNull Def tyckTopLevel(@NotNull Stmt stmt, @NotNull ExprTycker tycker) {

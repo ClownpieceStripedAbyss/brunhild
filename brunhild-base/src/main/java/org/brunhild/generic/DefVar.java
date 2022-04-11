@@ -36,4 +36,8 @@ public final class DefVar<Core extends Def, Concrete extends Decl> implements Va
   @Override public boolean equals(Object o) {
     return this == o;
   }
+
+  @Override public int hashCode() {
+    return System.identityHashCode(this);
+  }
 }

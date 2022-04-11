@@ -23,7 +23,8 @@ import java.util.function.Function;
 
 public record ExprTycker(
   @NotNull Reporter reporter,
-  @NotNull Gamma gamma
+  @NotNull Gamma.TypeGamma gamma,
+  @NotNull Gamma.ConstGamma constGamma
 ) {
   public @NotNull Result infer(@NotNull Expr expr) {
     return switch (expr) {
