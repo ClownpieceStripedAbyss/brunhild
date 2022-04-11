@@ -13,6 +13,7 @@ import org.jetbrains.annotations.NotNull;
 public sealed interface Term {
   sealed interface LValueTerm extends Term {}
   sealed interface CallTerm extends Term {}
+  sealed interface ArrayTerm extends Term {}
 
   record RefTerm(
     @NotNull Var var
@@ -37,9 +38,13 @@ public sealed interface Term {
     Either<Either<Integer, Float>, String> literal
   ) implements Term {}
 
-  record ArrayTerm(
+  record InitializedArray(
     @NotNull ImmutableSeq<Term> values
-  ) implements Term {}
+  ) implements ArrayTerm {}
+
+  record UninitializedArray(
+    @NotNull Type.Array<Term> format
+  ) implements ArrayTerm {}
 
   record BinaryTerm(
     @NotNull Expr.BinOP op,

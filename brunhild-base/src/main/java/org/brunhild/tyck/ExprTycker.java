@@ -148,7 +148,7 @@ public record ExprTycker(
           yield fail(new CoerceError(array.sourcePos(), "array type", type));
         // TODO: fold constants on Terms and check dimensions
         var values = array.values().map(v -> check(v, arrayType.elementType()).wellTyped);
-        yield new Result(new Term.ArrayTerm(values), arrayType);
+        yield new Result(new Term.InitializedArray(values), arrayType);
       }
       default -> {
         var infer = infer(expr);
@@ -159,7 +159,18 @@ public record ExprTycker(
   }
 
   public @NotNull Result check(@NotNull Option<Expr> expr, @NotNull Type<Term> type) {
-    throw new UnsupportedOperationException("not implemented");
+    if (expr.isDefined()) return check(expr.get(), type);
+    // fill it with a default value
+    if (type instanceof Type.Array<Term> arrayType) {
+      return new Result(new Term.UninitializedArray(arrayType), type);
+    }
+    if (type instanceof Type.Int<Term>) {
+      return new Result(new Term.LitTerm(Either.left(Either.left(0))), type);
+    }
+    if (type instanceof Type.Float<Term>) {
+      return new Result(new Term.LitTerm(Either.left(Either.right(0.0f))), type);
+    }
+    throw new IllegalStateException("no default value for " + type);
   }
 
   private @NotNull UnifyResult unifyMaybeCoerce(@NotNull Result lhs, @NotNull Result rhs) {
@@ -189,6 +200,7 @@ public record ExprTycker(
           case Type.DimInferred ignored -> new Type.DimInferred();
           case Type.DimConst dimConst -> new Type.DimConst(dimConst.dimension());
           case Type.DimExpr dimExpr ->
+            // TODO: fold the dimension to constant
             new Type.DimExpr<>(check((Expr) dimExpr.term(), new Type.Int<Term>().mkConst()).wellTyped());
         };
         yield new TResult(new Type.Array<>(elem, dim), new Type.Univ<>());
