@@ -9,7 +9,7 @@ import org.brunhild.generic.LocalVar;
 import org.brunhild.generic.Type;
 import org.jetbrains.annotations.NotNull;
 
-public abstract class Def {
+public abstract sealed class Def implements Proclaim {
   public final @NotNull Type<Term> result;
   public final @NotNull ImmutableSeq<Term.Param> telescope;
 
@@ -28,7 +28,7 @@ public abstract class Def {
     return this.telescope;
   }
 
-  public static class FnDef extends Def {
+  public static final class FnDef extends Def {
     public final @NotNull DefVar<FnDef, Decl.FnDecl> ref;
     public final @NotNull Proclaim body;
 
@@ -49,7 +49,7 @@ public abstract class Def {
     }
   }
 
-  public static class VarDef extends Def {
+  public static final class VarDef extends Def {
     public final @NotNull DefVar<Def.VarDef, Decl.VarDecl> ref;
     public @NotNull Term body;
 
@@ -69,7 +69,7 @@ public abstract class Def {
     }
   }
 
-  public static class PrimDef extends Def {
+  public static final class PrimDef extends Def {
     public final @NotNull DefVar<Def.PrimDef, ?> ref;
 
     public PrimDef(

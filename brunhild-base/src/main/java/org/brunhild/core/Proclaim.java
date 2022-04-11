@@ -4,7 +4,8 @@ import kala.collection.immutable.ImmutableSeq;
 import kala.control.Option;
 import org.jetbrains.annotations.NotNull;
 
-public sealed interface Proclaim {
+public sealed interface Proclaim permits Def, Proclaim.AssignProclaim, Proclaim.BlockProclaim, Proclaim.BreakProclaim,
+  Proclaim.ContinueProclaim, Proclaim.IfProclaim, Proclaim.ReturnProclaim, Proclaim.TermProclaim, Proclaim.WhileProclaim {
   record AssignProclaim(
     @NotNull Term.LValueTerm lvalue,
     @NotNull Term rvalue
