@@ -22,6 +22,23 @@ public record Folder(
         case LOGICAL_NOT -> tryFold(unary.term(), i -> litInt(i == 0 ? 1 : 0), Folder::litFloat);
       };
       // TODO: flatten binary ops
+      case Term.BinaryTerm bin -> switch (bin.op()) {
+        case ADD -> tryFoldBin(bin.lhs(), bin.rhs(), (l, r) -> litInt(l + r), (l, r) -> litFloat(l + r));
+        case SUB -> tryFoldBin(bin.lhs(), bin.rhs(), (l, r) -> litInt(l - r), (l, r) -> litFloat(l - r));
+        case MUL -> tryFoldBin(bin.lhs(), bin.rhs(), (l, r) -> litInt(l * r), (l, r) -> litFloat(l * r));
+        case DIV -> tryFoldBin(bin.lhs(), bin.rhs(), (l, r) -> litInt(l / r), (l, r) -> litFloat(l / r));
+        case MOD -> tryFoldBin(bin.lhs(), bin.rhs(), (l, r) -> litInt(l % r), this::tyckerBug);
+        case EQ -> tryFoldBin(bin.lhs(), bin.rhs(), (l, r) -> litInt(l == r ? 1 : 0), this::tyckerBug);
+        case NE -> tryFoldBin(bin.lhs(), bin.rhs(), (l, r) -> litInt(l != r ? 1 : 0), this::tyckerBug);
+        case LT -> tryFoldBin(bin.lhs(), bin.rhs(), (l, r) -> litInt(l < r ? 1 : 0), this::tyckerBug);
+        case LE -> tryFoldBin(bin.lhs(), bin.rhs(), (l, r) -> litInt(l <= r ? 1 : 0), this::tyckerBug);
+        case GT -> tryFoldBin(bin.lhs(), bin.rhs(), (l, r) -> litInt(l > r ? 1 : 0), this::tyckerBug);
+        case GE -> tryFoldBin(bin.lhs(), bin.rhs(), (l, r) -> litInt(l >= r ? 1 : 0), this::tyckerBug);
+        case LOGICAL_AND ->
+          tryFoldBin(bin.lhs(), bin.rhs(), (l, r) -> litInt(l == 1 && r == 1 ? 1 : 0), this::tyckerBug);
+        case LOGICAL_OR ->
+          tryFoldBin(bin.lhs(), bin.rhs(), (l, r) -> litInt(l == 1 || r == 1 ? 1 : 0), this::tyckerBug);
+      };
       case Term.IndexTerm indexTerm -> {
         var array = traverse(indexTerm.term(), unit);
         if (!(array instanceof Term.ArrayTerm arrayTerm))
@@ -29,6 +46,7 @@ public record Folder(
         yield tryFold(indexTerm.index(), i -> {
           if (arrayTerm instanceof Term.UninitializedArray) return defaultValueOf(arrayTerm.type().elementType());
           if (arrayTerm instanceof Term.InitializedArray arr) {
+            // TODO: what if we are targeting JVM? We should throw an exception in that case.
             if (i < 0 || i >= arr.values().size()) return defaultValueOf(arrayTerm.type().elementType());
             else return arr.values().get(i);
           } else throw new IllegalStateException("unreachable");
@@ -57,16 +75,16 @@ public record Folder(
 
   private @NotNull Term tryFold(
     @NotNull Term term,
-    @NotNull IntFunction<Term> foldInt,
-    @NotNull FloatFunction<Term> foldFloat
+    @NotNull IntFunction<Term> foldI,
+    @NotNull FloatFunction<Term> foldF
   ) {
     var folded = traverse(term, Unit.unit());
     if (folded instanceof Term.LitTerm lit) {
       var literal = lit.literal();
       if (literal.isRight()) return lit;
       var left = literal.getLeftValue();
-      if (left.isLeft()) return foldInt.apply(left.getLeftValue());
-      else return foldFloat.apply(left.getRightValue());
+      if (left.isLeft()) return foldI.apply(left.getLeftValue());
+      else return foldF.apply(left.getRightValue());
     }
     return folded;
   }
@@ -75,9 +93,26 @@ public record Folder(
     @NotNull Term term,
     @NotNull IntFunction<Term> fold
   ) {
-    return tryFold(term, fold, f -> {
-      throw new IllegalStateException("type checker bug?");
-    });
+    return tryFold(term, fold, this::tyckerBug);
+  }
+
+  private <R, T> R tyckerBug(T t) {
+    throw new IllegalStateException("type checker bug?");
+  }
+
+  private <R, T1, T2> R tyckerBug(T1 t1, T2 t2) {
+    throw new IllegalStateException("type checker bug?");
+  }
+
+  private @NotNull Term tryFoldBin(
+    @NotNull Term lhs,
+    @NotNull Term rhs,
+    @NotNull IntIntBiFunction<Term> foldInt,
+    @NotNull FloatFloatBiFunction<Term> foldFloat
+  ) {
+    return tryFold(lhs,
+      li -> tryFold(rhs, ri -> foldInt.apply(li, ri), this::tyckerBug),
+      lf -> tryFold(rhs, this::tyckerBug, rf -> foldFloat.apply(lf, rf)));
   }
 
   public static @NotNull Term defaultValueOf(@NotNull Type<Term> type) {
@@ -87,5 +122,15 @@ public record Folder(
       case Type.Array<Term> array -> new Term.UninitializedArray(array);
       default -> throw new IllegalStateException("no default value for type " + type);
     };
+  }
+
+  @FunctionalInterface
+  public interface IntIntBiFunction<R> {
+    R apply(int i1, int i2);
+  }
+
+  @FunctionalInterface
+  public interface FloatFloatBiFunction<R> {
+    R apply(float i1, float i2);
   }
 }
