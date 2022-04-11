@@ -30,7 +30,7 @@ public abstract sealed class Def implements Proclaim {
 
   public static final class FnDef extends Def {
     public final @NotNull DefVar<FnDef, Decl.FnDecl> ref;
-    public final @NotNull Proclaim body;
+    public @NotNull Proclaim body;
 
     public FnDef(
       @NotNull DefVar<FnDef, Decl.FnDecl> ref,

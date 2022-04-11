@@ -10,7 +10,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.function.IntFunction;
 
-public record Folder(
+public record TermFold(
   @NotNull Gamma.ConstGamma gamma
 ) implements TermOps<Unit> {
   @Override public @NotNull Term traverse(@NotNull Term term, Unit unit) {
@@ -19,7 +19,7 @@ public record Folder(
       case Term.UnaryTerm unary -> switch (unary.op()) {
         case POS -> tryFold(unary.term(), i -> litInt(+i), f -> litFloat(+f));
         case NEG -> tryFold(unary.term(), i -> litInt(-i), f -> litFloat(-f));
-        case LOGICAL_NOT -> tryFold(unary.term(), i -> litInt(i == 0 ? 1 : 0), Folder::litFloat);
+        case LOGICAL_NOT -> tryFold(unary.term(), i -> litInt(i == 0 ? 1 : 0), TermFold::litFloat);
       };
       // TODO: flatten binary ops
       case Term.BinaryTerm bin -> switch (bin.op()) {

@@ -32,13 +32,13 @@ public sealed interface Proclaim permits Def, Proclaim.AssignProclaim, Proclaim.
   }
 
   record IfProclaim(
-    @NotNull Term condition,
+    @NotNull Term cond,
     @NotNull Proclaim thenBranch,
     @NotNull Option<Proclaim> elseBranch
   ) implements Proclaim {
     @Override public @NotNull String toString() {
-      if (elseBranch.isEmpty()) return String.format("if (%s) %s", condition, thenBranch);
-      else return String.format("if (%s) %s else %s", condition, thenBranch, elseBranch.get());
+      if (elseBranch.isEmpty()) return String.format("if (%s) %s", cond, thenBranch);
+      else return String.format("if (%s) %s else %s", cond, thenBranch, elseBranch.get());
     }
   }
 

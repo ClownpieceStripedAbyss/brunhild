@@ -7,7 +7,7 @@ import org.brunhild.concrete.Decl;
 import org.brunhild.concrete.Expr;
 import org.brunhild.core.Def;
 import org.brunhild.core.Term;
-import org.brunhild.core.ops.Folder;
+import org.brunhild.core.ops.TermFold;
 import org.brunhild.error.InterruptException;
 import org.brunhild.error.Problem;
 import org.brunhild.error.Reporter;
@@ -31,8 +31,8 @@ public record ExprTycker(
 
   public @NotNull Result infer(@NotNull Expr expr) {
     return switch (expr) {
-      case Expr.LitIntExpr lit -> new Result(Folder.litInt(lit.value()));
-      case Expr.LitFloatExpr lit -> new Result(Folder.litFloat(lit.value()));
+      case Expr.LitIntExpr lit -> new Result(TermFold.litInt(lit.value()));
+      case Expr.LitFloatExpr lit -> new Result(TermFold.litFloat(lit.value()));
       case Expr.LitStringExpr lit -> new Result(new Term.LitTerm(Either.right(lit.value())));
       case Expr.UnaryExpr unaryExpr -> switch (unaryExpr.op()) {
         case POS, NEG -> {
@@ -121,7 +121,7 @@ public record ExprTycker(
       var desugarPrim = prim == Def.PrimFactory.StartTime.prim
         ? Def.PrimFactory.StartTimeABI.prim
         : Def.PrimFactory.StopTimeABI.prim;
-      var arg = Folder.litInt(appExpr.sourcePos().startLine());
+      var arg = TermFold.litInt(appExpr.sourcePos().startLine());
       return new Result(new Term.PrimCall(desugarPrim.ref, ImmutableSeq.of(arg)));
     } else {
       var checkArgSize = prim != Def.PrimFactory.Printf.prim;
@@ -162,7 +162,7 @@ public record ExprTycker(
   public @NotNull Result check(@NotNull Option<Expr> expr, @NotNull Type<Term> type) {
     if (expr.isDefined()) return check(expr.get(), type);
     // fill it with a default value
-    return new Result(Folder.defaultValueOf(type));
+    return new Result(TermFold.defaultValueOf(type));
   }
 
   private @NotNull UnifyResult unifyMaybeCoerce(@NotNull SourcePos sourcePos, @NotNull Result lhs, @NotNull Result rhs) {

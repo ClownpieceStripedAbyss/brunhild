@@ -5,7 +5,7 @@ import kala.control.Either;
 import kala.tuple.Unit;
 import org.brunhild.concrete.Decl;
 import org.brunhild.concrete.Expr;
-import org.brunhild.core.ops.Folder;
+import org.brunhild.core.ops.TermFold;
 import org.brunhild.generic.DefVar;
 import org.brunhild.generic.LocalVar;
 import org.brunhild.generic.Type;
@@ -163,6 +163,6 @@ public sealed interface Term {
   }
 
   default @NotNull Term fold(@NotNull Gamma.ConstGamma gamma) {
-    return new Folder(gamma).traverse(this, Unit.unit());
+    return new TermFold(gamma).traverse(this, Unit.unit());
   }
 }
