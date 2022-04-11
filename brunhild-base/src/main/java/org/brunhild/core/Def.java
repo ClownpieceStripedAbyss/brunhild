@@ -97,11 +97,17 @@ public abstract class Def {
     PutFloat("putfloat", voidT(), floatT("f")),
     PutArray("putarray", voidT(), intT("size"), arrayT(intT("array"))),
     PutFloatArray("putfarray", voidT(), intT("size"), arrayT(floatT("array"))),
+    Printf("putf", voidT(), stringT("fmt")),
+    StartTime("starttime", "_sysy_starttime", voidT()),
+    StopTime("stoptime", "_sysy_stoptime", voidT()),
+    StartTimeABI("_sysy_starttime", voidT(), intT("line")),
+    StopTimeABI("_sysy_stoptime", voidT(), intT("line")),
     ;
 
     public static final @NotNull ImmutableSeq<PrimFactory> PRIMITIVES = ImmutableSeq.of(
       GetInt, GetChar, GetFloat, GetArray, GetFloatArray,
-      PutInt, PutChar, PutFloat, PutArray, PutFloatArray
+      PutInt, PutChar, PutFloat, PutArray, PutFloatArray,
+      Printf, StartTime, StopTime, StartTimeABI, StopTimeABI
     );
 
     public static void install(@NotNull ModuleContext context) {
@@ -109,9 +115,16 @@ public abstract class Def {
     }
 
     public final @NotNull PrimDef prim;
+    public final @NotNull String abiName;
 
     PrimFactory(@NotNull String name, @NotNull Term.Param result, @NotNull Term.Param... params) {
       this.prim = new PrimDef(name, ImmutableSeq.from(params), result.type());
+      this.abiName = name;
+    }
+
+    PrimFactory(@NotNull String name, @NotNull String abiName, @NotNull Term.Param result, @NotNull Term.Param... params) {
+      this.prim = new PrimDef(name, ImmutableSeq.from(params), result.type());
+      this.abiName = abiName;
     }
 
     private static @NotNull Term.Param intT(@NotNull String name) {
@@ -120,6 +133,10 @@ public abstract class Def {
 
     private static @NotNull Term.Param floatT(@NotNull String name) {
       return new Term.Param(new LocalVar(name), new Type.Float<>());
+    }
+
+    private static @NotNull Term.Param stringT(@NotNull String name) {
+      return new Term.Param(new LocalVar(name), new Type.String<>());
     }
 
     private static @NotNull Term.Param voidT() {
