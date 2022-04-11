@@ -86,7 +86,8 @@ public record ExprTycker(
           case null -> {
             // we are referencing primitives
             var prim = ((Def.PrimDef) defVar.core);
-            yield new ExprResult(new Term.RefTerm(prim.ref), prim.result);
+            var tele = prim.telescope().map(Term.Param::type);
+            yield new ExprResult(new Term.RefTerm(prim.ref), new Type.Fn<>(tele, prim.result()));
           }
           case default -> throw new IllegalStateException("Unknown concrete: " + defVar.concrete.getClass());
         };
