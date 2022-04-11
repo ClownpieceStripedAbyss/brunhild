@@ -10,6 +10,7 @@ import org.brunhild.core.Term;
 import org.brunhild.error.InterruptException;
 import org.brunhild.error.Problem;
 import org.brunhild.error.Reporter;
+import org.brunhild.error.SourcePos;
 import org.brunhild.generic.DefVar;
 import org.brunhild.generic.LocalVar;
 import org.brunhild.generic.Type;
@@ -36,7 +37,7 @@ public record ExprTycker(
           yield new Result(new Term.UnaryTerm(unaryExpr.op(), operand.wellTyped), operand.type);
         }
         case LOGICAL_NOT -> {
-          var operand = check(unaryExpr.expr(), new Type.Bool<>());
+          var operand = check(unaryExpr.expr(), new Type.Int<>());
           yield new Result(new Term.UnaryTerm(unaryExpr.op(), operand.wellTyped), operand.type);
         }
       };
@@ -44,18 +45,13 @@ public record ExprTycker(
         case ADD, SUB, MUL, DIV -> {
           var lhs = infer(binaryExpr.lhs());
           var rhs = infer(binaryExpr.rhs());
-          var result = unifyMaybeCoerce(lhs, rhs);
-          yield new Result(new Term.BinaryTerm(binaryExpr.op(), result.lhs.wellTyped, result.rhs.wellTyped), result.type.wellTyped);
+          var result = unifyMaybeCoerce(binaryExpr.sourcePos(), lhs, rhs);
+          yield new Result(new Term.BinaryTerm(binaryExpr.op(), result.lhs.wellTyped, result.rhs.wellTyped), result.type);
         }
-        case MOD -> {
+        case MOD, LOGICAL_AND, LOGICAL_OR, EQ, NE, LT, LE, GT, GE -> {
           var lhs = check(binaryExpr.lhs(), new Type.Int<>());
           var rhs = check(binaryExpr.rhs(), new Type.Int<>());
           yield new Result(new Term.BinaryTerm(binaryExpr.op(), lhs.wellTyped, rhs.wellTyped), new Type.Int<>());
-        }
-        case LOGICAL_AND, LOGICAL_OR, EQ, NE, LT, LE, GT, GE -> {
-          var lhs = check(binaryExpr.lhs(), new Type.Bool<>());
-          var rhs = check(binaryExpr.rhs(), new Type.Bool<>());
-          yield new Result(new Term.BinaryTerm(binaryExpr.op(), lhs.wellTyped, rhs.wellTyped), new Type.Bool<>());
         }
       };
       case Expr.AppExpr appExpr -> {
@@ -145,14 +141,14 @@ public record ExprTycker(
     return switch (expr) {
       case Expr.LitArrayExpr array -> {
         if (!(type instanceof Type.Array<Term> arrayType))
-          yield fail(new CoerceError(array.sourcePos(), "array type", type));
+          yield fail(new CoerceError(array.sourcePos(), "array type", type, "to"));
         // TODO: fold constants on Terms and check dimensions
         var values = array.values().map(v -> check(v, arrayType.elementType()).wellTyped);
         yield new Result(new Term.InitializedArray(values), arrayType);
       }
       default -> {
         var infer = infer(expr);
-        var result = unifyMaybeCoerce(infer, type);
+        var result = unifyMaybeCoerce(expr.sourcePos(), infer, type);
         yield result.lhs;
       }
     };
@@ -173,12 +169,36 @@ public record ExprTycker(
     throw new IllegalStateException("no default value for " + type);
   }
 
-  private @NotNull UnifyResult unifyMaybeCoerce(@NotNull Result lhs, @NotNull Result rhs) {
-    throw new UnsupportedOperationException("not implemented");
+  private @NotNull UnifyResult unifyMaybeCoerce(@NotNull SourcePos sourcePos, @NotNull Result lhs, @NotNull Result rhs) {
+    if (lhs.type.equals(rhs.type)) return new UnifyResult(lhs, rhs, lhs.type);
+    var lhsType = lhs.type;
+    var rhsType = rhs.type;
+    var lhsTerm = lhs.wellTyped;
+    var rhsTerm = rhs.wellTyped;
+    if (lhsType instanceof Type.Int<Term> && rhsType instanceof Type.Float<Term>) {
+      return new UnifyResult(new Result(new Term.CoerceTerm(lhsTerm, lhsType, rhsType), rhsType), rhs, rhsType);
+    }
+    if (lhsType instanceof Type.Float<Term> && rhsType instanceof Type.Int<Term>) {
+      return new UnifyResult(lhs, new Result(new Term.CoerceTerm(rhsTerm, rhsType, lhsType), lhsType), lhsType);
+    }
+    return fail(new CoerceError(sourcePos, lhsType.toString(), rhsType, "between"));
   }
 
-  private @NotNull UnifyResult unifyMaybeCoerce(@NotNull Result inferred, @NotNull Type<Term> against) {
-    throw new UnsupportedOperationException("not implemented");
+  private @NotNull UnifyResult unifyMaybeCoerce(@NotNull SourcePos sourcePos, @NotNull Result inferred, @NotNull Type<Term> against) {
+    if (inferred.type.equals(against)) return new UnifyResult(inferred, inferred, against);
+    var type = inferred.type;
+    var term = inferred.wellTyped;
+    while (!type.equals(against)) {
+      var coerced = type.coerced();
+      if (coerced == type) {
+        // cannot coerce further
+        return fail(new CoerceError(sourcePos, inferred.type.toString(), against, "to"));
+      }
+      term = new Term.CoerceTerm(term, type, coerced);
+      type = coerced;
+    }
+    var coercedResult = new Result(term, against);
+    return new UnifyResult(coercedResult, coercedResult, against);
   }
 
   private <T> T fail(@NotNull Problem problem) {
@@ -191,7 +211,6 @@ public record ExprTycker(
       case Type.Void ignored -> new TResult(new Type.Void<>(), new Type.Univ<>());
       case Type.Float ignored -> new TResult(new Type.Float<>(), new Type.Univ<>());
       case Type.Int ignored -> new TResult(new Type.Int<>(), new Type.Univ<>());
-      case Type.Bool ignored -> new TResult(new Type.Bool<>(), new Type.Univ<>());
       case Type.String ignored -> new TResult(new Type.String<>(), new Type.Univ<>());
       case Type.Const<Expr> constType -> new TResult(infer(constType.type()).wellTyped(), new Type.Univ<>());
       case Type.Array<Expr> arrayType -> {
@@ -215,7 +234,7 @@ public record ExprTycker(
 
   public record Result(@NotNull Term wellTyped, @NotNull Type<Term> type) {}
   public record TResult(@NotNull Type<Term> wellTyped, @NotNull Type<Term> type) {}
-  public record UnifyResult(@NotNull Result lhs, @NotNull Result rhs, @NotNull TResult type) {}
+  public record UnifyResult(@NotNull Result lhs, @NotNull Result rhs, @NotNull Type<Term> type) {}
 
   public static class TyckInterrupted extends InterruptException {
     @Override public @NotNull Stage stage() {

@@ -16,9 +16,12 @@ public sealed interface Type<Term> {
 
   record Univ<Term>() implements Type<Term> {}
   record Void<Term>() implements Type<Term> {}
-  record Int<Term>() implements Type<Term> {}
-  record Float<Term>() implements Type<Term> {}
-  record Bool<Term>() implements Type<Term> {
+  record Int<Term>() implements Type<Term> {
+    @Override public @NotNull Type<Term> coerced() {
+      return new Type.Float<>();
+    }
+  }
+  record Float<Term>() implements Type<Term> {
     @Override public @NotNull Type<Term> coerced() {
       return new Type.Int<>();
     }

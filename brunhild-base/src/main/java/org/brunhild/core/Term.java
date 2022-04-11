@@ -59,7 +59,8 @@ public sealed interface Term {
 
   record CoerceTerm(
     @NotNull Term term,
-    @NotNull Type<Term> targetType
+    @NotNull Type<Term> fromType,
+    @NotNull Type<Term> toType
   ) implements LValueTerm {}
 
   record Param(
