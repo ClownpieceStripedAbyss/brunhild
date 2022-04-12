@@ -121,13 +121,13 @@ public interface TermFold extends TermOps<Gamma.ConstGamma> {
   ) {
     var lhs = traverse(bin.lhs(), gamma);
     var rhs = traverse(bin.rhs(), gamma);
-    if (lhs == bin.lhs() && rhs == bin.rhs()) return bin;
     if (lhs instanceof Term.LitTerm lhsLit && rhs instanceof Term.LitTerm rhsLit) {
       return tryFold(gamma, lhsLit,
         this::tyckerBug,
         li -> tryFold(gamma, rhsLit, this::tyckerBug, ri -> foldInt.apply(li, ri), this::tyckerBug),
         lf -> tryFold(gamma, rhsLit, this::tyckerBug, this::tyckerBug, rf -> foldFloat.apply(lf, rf)));
     }
+    if (lhs == bin.lhs() && rhs == bin.rhs()) return bin;
     return new Term.BinaryTerm(bin.op(), lhs, rhs);
   }
 
