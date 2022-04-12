@@ -1,13 +1,13 @@
-package org.brunhild.optimize;
+package org.brunhild.compiling.optimize;
 
+import org.brunhild.compiling.Pass;
 import org.brunhild.core.Def;
 import org.brunhild.core.Proclaim;
 import org.brunhild.core.ops.TermFold;
-import org.brunhild.optimize.generic.Optimizer;
 import org.brunhild.tyck.Gamma;
 import org.jetbrains.annotations.NotNull;
 
-public interface TreeFold extends TermFold, Optimizer.AstRewriter<Gamma.@NotNull ConstGamma> {
+public interface TreeFold extends TermFold, Pass.AstRewriter<Gamma.@NotNull ConstGamma> {
   @Override default @NotNull Proclaim traverse(@NotNull Proclaim proclaim, Gamma.@NotNull ConstGamma gamma) {
     return switch (proclaim) {
       case Def.VarDef varDef -> {
@@ -19,5 +19,5 @@ public interface TreeFold extends TermFold, Optimizer.AstRewriter<Gamma.@NotNull
     };
   }
 
-  class DefaultFold implements TreeFold {}
+  @NotNull TreeFold Pass = new TreeFold() {};
 }

@@ -13,5 +13,7 @@ module org.brunhild.base {
   exports org.brunhild.error;
   exports org.brunhild.generic;
   exports org.brunhild.tyck;
-  exports org.brunhild.optimize;
+  exports org.brunhild.compiling;
+  exports org.brunhild.compiling.optimize;
+  exports org.brunhild.compiling.generate;
 }

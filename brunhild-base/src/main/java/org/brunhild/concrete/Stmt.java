@@ -67,7 +67,7 @@ public sealed interface Stmt permits Decl, Stmt.AssignStmt, Stmt.BlockStmt, Stmt
     return StmtResolver.resolveStmts(stmts);
   }
 
-  static @NotNull ImmutableSeq<Proclaim> tyck(@NotNull Reporter reporter, @NotNull ImmutableSeq<Stmt> resolved) {
+  static @NotNull ImmutableSeq<Proclaim> tyck(@NotNull ImmutableSeq<Stmt> resolved, @NotNull Reporter reporter) {
     var stmtTycker = new StmtTycker(reporter);
     var rootTypeGamma = new Gamma.TypeGamma();
     var rootConstGamma = new Gamma.ConstGamma();

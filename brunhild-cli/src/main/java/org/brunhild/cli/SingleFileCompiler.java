@@ -2,14 +2,16 @@ package org.brunhild.cli;
 
 import kala.control.Option;
 import kala.function.CheckedSupplier;
-import org.brunhild.concrete.Stmt;
+import org.brunhild.compiling.Pass;
+import org.brunhild.compiling.Pipeline;
+import org.brunhild.compiling.generate.Generator;
+import org.brunhild.compiling.optimize.TreeFold;
 import org.brunhild.concrete.resolve.context.EmptyContext;
 import org.brunhild.concrete.resolve.context.ModuleContext;
 import org.brunhild.core.Def;
 import org.brunhild.error.InterruptException;
 import org.brunhild.error.Reporter;
 import org.brunhild.error.SourceFile;
-import org.brunhild.optimize.TreeFold;
 import org.brunhild.parser.BrunhildParserImpl;
 import org.brunhild.tyck.Gamma;
 import org.jetbrains.annotations.NotNull;
@@ -37,13 +39,17 @@ public record SingleFileCompiler(
   ) throws IOException {
     var ctx = context.apply(reporter);
     return catching(reporter, flags, () -> {
-      var parser = new BrunhildParserImpl(reporter);
-      var program = parser.program(sourceFile);
       Def.PrimFactory.install(ctx);
-      var resolved = Stmt.resolve(program, ctx);
-      var tycked = Stmt.tyck(reporter, resolved);
-      var optimized = new TreeFold.DefaultFold().perform(tycked, new Gamma.ConstGamma());
-      System.out.println(optimized.joinToString("\n"));
+
+      var artifact = Pipeline.Begin
+        .then(Pass.Parsing, new BrunhildParserImpl(reporter))
+        .then(Pass.Resolving, ctx)
+        .then(Pass.Tycking, reporter)
+        .then(TreeFold.Pass, new Gamma.ConstGamma())
+        .then(Generator.justForFun())
+        .peek(s -> System.out.println(s.joinToString("\n")))
+        .perform(sourceFile);
+
       return 0;
     });
   }
